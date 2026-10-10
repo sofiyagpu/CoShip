@@ -1,2 +1,26 @@
-import {defineConfig} from '@playwright/test';
-export default defineConfig({testDir:'tests/e2e',fullyParallel:false,workers:1,timeout:45000,use:{baseURL:'http://127.0.0.1:4311',channel:'chrome',viewport:{width:1440,height:1080},screenshot:'only-on-failure',trace:'retain-on-failure'},webServer:{command:'npm start',url:'http://127.0.0.1:4311/api/health',reuseExistingServer:false,timeout:60000,env:{COSHIP_MODE:'development',PORT:'4311',PUBLIC_URL:'http://127.0.0.1:4311',COSHIP_DATA_DIR:'.coship/e2e'}}});
+import { defineConfig } from '@playwright/test';
+export default defineConfig({
+  testDir: 'tests/e2e',
+  fullyParallel: false,
+  workers: 1,
+  timeout: 45000,
+  use: {
+    baseURL: 'http://127.0.0.1:4311',
+    channel: 'chrome',
+    viewport: { width: 1440, height: 1080 },
+    screenshot: 'only-on-failure',
+    trace: 'retain-on-failure',
+  },
+  webServer: {
+    command: 'npm start',
+    url: 'http://127.0.0.1:4311/api/health',
+    reuseExistingServer: false,
+    timeout: 60000,
+    env: {
+      COSHIP_MODE: 'development',
+      PORT: '4311',
+      PUBLIC_URL: 'http://127.0.0.1:4311',
+      COSHIP_DATA_DIR: '.coship/e2e',
+    },
+  },
+});

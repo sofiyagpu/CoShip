@@ -14,10 +14,7 @@
         "schema": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "title",
-            "done"
-          ],
+          "required": ["title", "done"],
           "properties": {
             "title": {
               "type": "string",
@@ -33,13 +30,7 @@
             }
           }
         },
-        "operations": [
-          "list",
-          "get",
-          "insert",
-          "update",
-          "delete"
-        ]
+        "operations": ["list", "get", "insert", "update", "delete"]
       }
     }
   },

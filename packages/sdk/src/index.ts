@@ -1,15 +1,36 @@
 import type { AppRecord } from '../../shared/src/index.js';
-type Call = (method:string,args:Record<string,unknown>)=>Promise<any>;
-export function createClient(call:Call) {
+type Call = (method: string, args: Record<string, unknown>) => Promise<any>;
+export function createClient(call: Call) {
   return {
-    data: { collection: (collection:string) => ({
-      list: (options:{limit?:number;cursor?:string}={}) => call('data',{...options,collection,operation:'list'}) as Promise<{items:AppRecord[];next_cursor:string|null}>,
-      get: (id:string) => call('data',{collection,operation:'get',id}) as Promise<AppRecord>,
-      insert: (payload:Record<string,unknown>,idempotency_key=crypto.randomUUID()) => call('data',{collection,operation:'insert',payload,idempotency_key}) as Promise<AppRecord>,
-      update: (id:string,payload:Record<string,unknown>,revision:number) => call('data',{collection,operation:'update',id,payload,revision}) as Promise<AppRecord>,
-      delete: (id:string,revision:number) => call('data',{collection,operation:'delete',id,revision}),
-    }) },
-    functions: { invoke:(name:string,input:unknown={})=>call('function',{name,input}) },
+    data: {
+      collection: (collection: string) => ({
+        list: (options: { limit?: number; cursor?: string } = {}) =>
+          call('data', { ...options, collection, operation: 'list' }) as Promise<{
+            items: AppRecord[];
+            next_cursor: string | null;
+          }>,
+        get: (id: string) =>
+          call('data', { collection, operation: 'get', id }) as Promise<AppRecord>,
+        insert: (payload: Record<string, unknown>, idempotency_key = crypto.randomUUID()) =>
+          call('data', {
+            collection,
+            operation: 'insert',
+            payload,
+            idempotency_key,
+          }) as Promise<AppRecord>,
+        update: (id: string, payload: Record<string, unknown>, revision: number) =>
+          call('data', {
+            collection,
+            operation: 'update',
+            id,
+            payload,
+            revision,
+          }) as Promise<AppRecord>,
+        delete: (id: string, revision: number) =>
+          call('data', { collection, operation: 'delete', id, revision }),
+      }),
+    },
+    functions: { invoke: (name: string, input: unknown = {}) => call('function', { name, input }) },
   };
 }
 // Included by the trusted publisher, before application scripts. No bearer token enters the iframe.

@@ -1,55 +1,857 @@
-import React,{useEffect,useLayoutEffect,useRef,useState} from 'react';
-import {ArrowLeft,Users,Copy,Archive,Play,History,MessageSquare,Settings,Lock,Loader2,Send,Download,RotateCcw,Database,ShieldCheck,KeyRound,Plus,Trash2,Check,Globe,Terminal} from 'lucide-react';
-import type {AppView} from '../../../packages/shared/src/index';
-import {api,post,formatDate} from './api';
-import {AppIcon,Empty,PageHeading,type Me,type Notify} from './ui';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  ArrowLeft,
+  Users,
+  Copy,
+  Archive,
+  Play,
+  History,
+  MessageSquare,
+  Settings,
+  Lock,
+  Loader2,
+  Send,
+  Download,
+  RotateCcw,
+  Database,
+  ShieldCheck,
+  KeyRound,
+  Plus,
+  Trash2,
+  Check,
+  Globe,
+  Terminal,
+} from 'lucide-react';
+import type { AppView } from '../../../packages/shared/src/index';
+import { api, post, formatDate } from './api';
+import { AppIcon, Empty, PageHeading, type Me, type Notify } from './ui';
 
-export function AppDetail({app,me,onBack,onShare,onCopy,onArchive,notify,onRefresh}:{app:AppView;me:Me;onBack:()=>void;onShare:()=>void;onCopy:()=>void;onArchive:()=>void;notify:Notify;onRefresh:()=>Promise<void>}){
-  const [tab,setTab]=useState('app'),[launch,setLaunch]=useState<{html:string;release_id:string;bridge_nonce:string}|null>(null),[error,setError]=useState(''),[releases,setReleases]=useState<any[]>([]),[comments,setComments]=useState<any[]>([]),[comment,setComment]=useState(''),[busy,setBusy]=useState(false),[name,setName]=useState(app.name),[description,setDescription]=useState(app.description),[people,setPeople]=useState<any[]>([]),[owner,setOwner]=useState(app.owner_id),[backup,setBackup]=useState((app as any).backup_owner_id||'');
-  const frame=useRef<HTMLIFrameElement>(null),channel=useRef<MessagePort|null>(null),generation=useRef(0);
-  useEffect(()=>{setName(app.name);setDescription(app.description);setOwner(app.owner_id)},[app.id,app.name,app.description,app.owner_id]);
-  useEffect(()=>{let cancelled=false;setError('');setLaunch(null);if(app.data_role&&app.status!=='archived')api(`/apps/${app.id}/launch`).then(r=>{if(!cancelled)setLaunch(r)}).catch(e=>{if(!cancelled)setError(e.message)});return()=>{cancelled=true;generation.current++;channel.current?.close()}},[app.id,app.active_release_id,app.status,app.data_role]);
-  async function loadDetails(){const r=await api<any[]>(`/apps/${app.id}/releases`);setReleases(r);if(app.data_role&&app.status!=='archived')setComments(await api(`/apps/${app.id}/comments`));}
-  useEffect(()=>{void loadDetails().catch(e=>notify(e.message,'error'));api('/people').then(p=>setPeople(p.users)).catch(()=>{})},[app.id,app.active_release_id]);
-  useLayoutEffect(()=>{
-    if(!launch||tab!=='app')return;
-    const current=++generation.current;let inFlight=0,connected=false;
-    function receive(event:MessageEvent){
-      if(connected||event.source!==frame.current?.contentWindow||event.origin!=='null'||event.data?.type!=='coship:ready'||event.data?.nonce!==launch!.bridge_nonce||!event.ports[0])return;
-      connected=true;const port=event.ports[0];channel.current=port;
-      port.onmessage=async event=>{
-        const message=event.data;
-        if(!message||typeof message.id!=='string'||message.id.length>64||!['data','function'].includes(message.method)||current!==generation.current||inFlight>=16)return;
-        try{if(JSON.stringify(message).length>70000)return}catch{return}inFlight++;
-        try{
-          const path=message.method==='data'?`/apps/${app.id}/data`:`/apps/${app.id}/functions/${encodeURIComponent(String(message.args?.name||''))}`;
-          const payload=message.method==='data'?{...message.args,release_id:launch!.release_id}:{release_id:launch!.release_id,input:message.args?.input};
-          const result=await post(path,payload);if(current===generation.current)port.postMessage({id:message.id,result});
-        }catch(e:any){if(current===generation.current)port.postMessage({id:message.id,error:{code:e.code||'REQUEST_FAILED',message:e.message}})}finally{inFlight--}
+export function AppDetail({
+  app,
+  me,
+  onBack,
+  onShare,
+  onCopy,
+  onArchive,
+  notify,
+  onRefresh,
+}: {
+  app: AppView;
+  me: Me;
+  onBack: () => void;
+  onShare: () => void;
+  onCopy: () => void;
+  onArchive: () => void;
+  notify: Notify;
+  onRefresh: () => Promise<void>;
+}) {
+  const [tab, setTab] = useState('app'),
+    [launch, setLaunch] = useState<{
+      html: string;
+      release_id: string;
+      bridge_nonce: string;
+    } | null>(null),
+    [error, setError] = useState(''),
+    [releases, setReleases] = useState<any[]>([]),
+    [comments, setComments] = useState<any[]>([]),
+    [comment, setComment] = useState(''),
+    [busy, setBusy] = useState(false),
+    [name, setName] = useState(app.name),
+    [description, setDescription] = useState(app.description),
+    [people, setPeople] = useState<any[]>([]),
+    [owner, setOwner] = useState(app.owner_id),
+    [backup, setBackup] = useState((app as any).backup_owner_id || '');
+  const frame = useRef<HTMLIFrameElement>(null),
+    channel = useRef<MessagePort | null>(null),
+    generation = useRef(0);
+  useEffect(() => {
+    setName(app.name);
+    setDescription(app.description);
+    setOwner(app.owner_id);
+  }, [app.id, app.name, app.description, app.owner_id]);
+  useEffect(() => {
+    let cancelled = false;
+    setError('');
+    setLaunch(null);
+    if (app.data_role && app.status !== 'archived')
+      api(`/apps/${app.id}/launch`)
+        .then((r) => {
+          if (!cancelled) setLaunch(r);
+        })
+        .catch((e) => {
+          if (!cancelled) setError(e.message);
+        });
+    return () => {
+      cancelled = true;
+      generation.current++;
+      channel.current?.close();
+    };
+  }, [app.id, app.active_release_id, app.status, app.data_role]);
+  async function loadDetails() {
+    const r = await api<any[]>(`/apps/${app.id}/releases`);
+    setReleases(r);
+    if (app.data_role && app.status !== 'archived')
+      setComments(await api(`/apps/${app.id}/comments`));
+  }
+  useEffect(() => {
+    void loadDetails().catch((e) => notify(e.message, 'error'));
+    api('/people')
+      .then((p) => setPeople(p.users))
+      .catch(() => {});
+  }, [app.id, app.active_release_id]);
+  useLayoutEffect(() => {
+    if (!launch || tab !== 'app') return;
+    const current = ++generation.current;
+    let inFlight = 0,
+      connected = false;
+    function receive(event: MessageEvent) {
+      if (
+        connected ||
+        event.source !== frame.current?.contentWindow ||
+        event.origin !== 'null' ||
+        event.data?.type !== 'coship:ready' ||
+        event.data?.nonce !== launch!.bridge_nonce ||
+        !event.ports[0]
+      )
+        return;
+      connected = true;
+      const port = event.ports[0];
+      channel.current = port;
+      port.onmessage = async (event) => {
+        const message = event.data;
+        if (
+          !message ||
+          typeof message.id !== 'string' ||
+          message.id.length > 64 ||
+          !['data', 'function'].includes(message.method) ||
+          current !== generation.current ||
+          inFlight >= 16
+        )
+          return;
+        try {
+          if (JSON.stringify(message).length > 70000) return;
+        } catch {
+          return;
+        }
+        inFlight++;
+        try {
+          const path =
+            message.method === 'data'
+              ? `/apps/${app.id}/data`
+              : `/apps/${app.id}/functions/${encodeURIComponent(String(message.args?.name || ''))}`;
+          const payload =
+            message.method === 'data'
+              ? { ...message.args, release_id: launch!.release_id }
+              : { release_id: launch!.release_id, input: message.args?.input };
+          const result = await post(path, payload);
+          if (current === generation.current) port.postMessage({ id: message.id, result });
+        } catch (e: any) {
+          if (current === generation.current)
+            port.postMessage({
+              id: message.id,
+              error: { code: e.code || 'REQUEST_FAILED', message: e.message },
+            });
+        } finally {
+          inFlight--;
+        }
       };
-      port.postMessage({type:'coship:connected'});
+      port.postMessage({ type: 'coship:connected' });
     }
-    window.addEventListener('message',receive);
-    return()=>{generation.current++;window.removeEventListener('message',receive);channel.current?.close();channel.current=null};
-  },[launch,app.id,tab]);
-  async function addComment(e:React.FormEvent){e.preventDefault();setBusy(true);try{await post(`/apps/${app.id}/comments`,{body:comment});setComment('');await loadDetails()}catch(e:any){notify(e.message,'error')}finally{setBusy(false)}}
-  async function source(){try{const packet=await api(`/apps/${app.id}/source`);const url=URL.createObjectURL(new Blob([JSON.stringify(packet,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`coship-${app.id}.json`;a.click();URL.revokeObjectURL(url)}catch(e:any){notify(e.message,'error')}}
-  return <div className="detail-page"><button className="back-button" onClick={onBack}><ArrowLeft size={16}/>Все приложения</button><div className="detail-heading"><AppIcon icon={app.icon} color={app.color} size="large"/><div><h1>{app.name}</h1><p>{app.description}</p></div><div className="detail-actions">{app.management_role&&<button className="button secondary" onClick={onCopy}><Copy size={15}/>Копия</button>}<button className="button primary" onClick={onShare}><Users size={16}/>Поделиться</button></div></div><div className="detail-meta"><span><Lock size={12}/>Доступ ограничен</span><span>Владелец: {app.owner_name}</span><span>{app.collections.length} коллекций</span><span>{app.record_count} записей</span></div><div className="detail-tabs">{([['app',Play,'Приложение'],['versions',History,'Версии'],['comments',MessageSquare,'Комментарии'],['settings',Settings,'Настройки']] as const).map(([id,Icon,label])=><button key={id} className={tab===id?'active':''} onClick={()=>setTab(id)}><Icon size={15}/>{label}{id==='comments'&&comments.length>0&&<small>{comments.length}</small>}</button>)}</div>
-  {tab==='app'?<div className="app-frame-wrap">{app.status==='archived'?<Empty title="Приложение в архиве" text="Код и данные сохранены. Восстановите приложение, чтобы продолжить." action={(app.management_role==='owner'||me.admin)&&<button className="button primary" onClick={onArchive}>Восстановить</button>}/>:!app.data_role?<Empty title="Нет доступа к данным" text="Право управления приложением не даёт автоматического доступа к его данным." action={<button className="button secondary" onClick={onShare}>Посмотреть права</button>}/>:error?<div className="error-box" role="alert">{error}</div>:launch?<iframe ref={frame} title={app.name} srcDoc={launch.html} sandbox="allow-scripts allow-forms" referrerPolicy="no-referrer"/>:<div className="loading"><Loader2 className="spin" size={22}/></div>}</div>:
-  tab==='versions'?<div className="surface detail-surface"><div className="section-title"><div><h3>История публикаций</h3><p className="muted small-text">Откат меняет код. Данные и права доступа сохраняются.</p></div>{app.management_role&&<button className="button secondary" onClick={()=>void source()}><Download size={14}/>Скачать код</button>}</div>{releases.map(r=><div className="release-row" key={r.id}><span className="release-icon"><History size={18}/></span><div><strong>Версия {r.version} {r.id===app.active_release_id&&<span className="status-tag"><i/>Текущая</span>}</strong><p>{r.author} · {formatDate(r.created_at)}</p><code>sha256:{r.digest.slice(0,20)}…</code></div>{r.id!==app.active_release_id&&app.management_role&&<button className="button secondary" onClick={async()=>{try{await post(`/apps/${app.id}/rollback`,{release_id:r.id,expected_release_id:app.active_release_id});await onRefresh();notify('Версия восстановлена')}catch(e:any){notify(e.message,'error')}}}><RotateCcw size={14}/>Восстановить</button>}</div>)}</div>:
-  tab==='comments'?<div className="surface detail-surface comments-surface">{!app.data_role||app.status==='archived'?<Empty title="Обсуждение недоступно" text="Для комментариев нужен доступ к действующему приложению."/>:<><h3>Обсуждение команды</h3><p className="muted small-text">Контекст, идеи и обратная связь — рядом с приложением.</p>{comments.length?comments.map(c=><div className="comment" key={c.id}><span className="avatar">{c.avatar}</span><div><strong>{c.name}</strong><time>{formatDate(c.created_at)}</time><p>{c.body}</p></div></div>):<Empty title="Начните разговор" text="Поделитесь идеей или оставьте первый комментарий."/>}<form className="comment-form" onSubmit={addComment}><textarea aria-label="Комментарий" placeholder="Что можно улучшить?" maxLength={2000} value={comment} onChange={e=>setComment(e.target.value)}/><button className="button primary" disabled={!comment.trim()||busy}><Send size={15}/>Отправить</button></form></>}</div>:
-  <div className="settings-grid"><section className="surface settings-card"><h3>О приложении</h3><label className="field-label">Название<input value={name} onChange={e=>setName(e.target.value)} maxLength={80} disabled={app.management_role!=='owner'&&!me.admin}/></label><label className="field-label">Описание<textarea value={description} onChange={e=>setDescription(e.target.value)} maxLength={300} disabled={app.management_role!=='owner'&&!me.admin}/></label>{(app.management_role==='owner'||me.admin)&&<><button className="button primary" onClick={async()=>{try{await api(`/apps/${app.id}`,{method:'PATCH',body:JSON.stringify({name,description})});await onRefresh();notify('Изменения сохранены')}catch(e:any){notify(e.message,'error')}}}>Сохранить изменения</button><label className="checkbox-label"><input type="checkbox" checked={app.pinned} onChange={async e=>{try{await api(`/apps/${app.id}`,{method:'PATCH',body:JSON.stringify({pinned:e.target.checked})});await onRefresh()}catch(e:any){notify(e.message,'error')}}}/>Не архивировать автоматически</label></>}</section><section className="surface settings-card"><h3>Ответственность и доступ</h3><p className="muted">Передача владельца не выдаёт ему права на данные.</p>{(app.management_role==='owner'||me.admin)?<><label className="field-label">Владелец<select value={owner} onChange={e=>setOwner(e.target.value)}>{people.filter(p=>p.active).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><button className="button secondary" disabled={owner===app.owner_id} onClick={async()=>{try{await post(`/apps/${app.id}/owner`,{owner_id:owner});await onRefresh();notify('Владелец изменён')}catch(e:any){notify(e.message,'error')}}}>Передать владение</button><label className="field-label">Заместитель на случай отключения<select value={backup} onChange={e=>setBackup(e.target.value)}><option value="">Администратор компании</option>{people.filter(p=>p.active&&p.id!==app.owner_id).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select></label><button className="button secondary" onClick={async()=>{try{await api(`/apps/${app.id}`,{method:'PATCH',body:JSON.stringify({backup_owner_id:backup||null})});await onRefresh();notify('Заместитель сохранён')}catch(e:any){notify(e.message,'error')}}}>Сохранить заместителя</button><div className="danger-section"><button className="button danger" onClick={onArchive}><Archive size={15}/>{app.status==='archived'?'Восстановить приложение':'Отправить в архив'}</button><p>Архивирование не удаляет данные.</p></div></>:<button className="button secondary" onClick={onShare}>Посмотреть участников</button>}</section></div>}</div>
+    window.addEventListener('message', receive);
+    return () => {
+      generation.current++;
+      window.removeEventListener('message', receive);
+      channel.current?.close();
+      channel.current = null;
+    };
+  }, [launch, app.id, tab]);
+  async function addComment(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await post(`/apps/${app.id}/comments`, { body: comment });
+      setComment('');
+      await loadDetails();
+    } catch (e: any) {
+      notify(e.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function source() {
+    try {
+      const packet = await api(`/apps/${app.id}/source`);
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(packet, null, 2)], { type: 'application/json' }),
+      );
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `coship-${app.id}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      notify(e.message, 'error');
+    }
+  }
+  return (
+    <div className="detail-page">
+      <button className="back-button" onClick={onBack}>
+        <ArrowLeft size={16} />
+        Все приложения
+      </button>
+      <div className="detail-heading">
+        <AppIcon icon={app.icon} color={app.color} size="large" />
+        <div>
+          <h1>{app.name}</h1>
+          <p>{app.description}</p>
+        </div>
+        <div className="detail-actions">
+          {app.management_role && (
+            <button className="button secondary" onClick={onCopy}>
+              <Copy size={15} />
+              Копия
+            </button>
+          )}
+          <button className="button primary" onClick={onShare}>
+            <Users size={16} />
+            Поделиться
+          </button>
+        </div>
+      </div>
+      <div className="detail-meta">
+        <span>
+          <Lock size={12} />
+          Доступ ограничен
+        </span>
+        <span>Владелец: {app.owner_name}</span>
+        <span>{app.collections.length} коллекций</span>
+        <span>{app.record_count} записей</span>
+      </div>
+      <div className="detail-tabs">
+        {(
+          [
+            ['app', Play, 'Приложение'],
+            ['versions', History, 'Версии'],
+            ['comments', MessageSquare, 'Комментарии'],
+            ['settings', Settings, 'Настройки'],
+          ] as const
+        ).map(([id, Icon, label]) => (
+          <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
+            <Icon size={15} />
+            {label}
+            {id === 'comments' && comments.length > 0 && <small>{comments.length}</small>}
+          </button>
+        ))}
+      </div>
+      {tab === 'app' ? (
+        <div className="app-frame-wrap">
+          {app.status === 'archived' ? (
+            <Empty
+              title="Приложение в архиве"
+              text="Код и данные сохранены. Восстановите приложение, чтобы продолжить."
+              action={
+                (app.management_role === 'owner' || me.admin) && (
+                  <button className="button primary" onClick={onArchive}>
+                    Восстановить
+                  </button>
+                )
+              }
+            />
+          ) : !app.data_role ? (
+            <Empty
+              title="Нет доступа к данным"
+              text="Право управления приложением не даёт автоматического доступа к его данным."
+              action={
+                <button className="button secondary" onClick={onShare}>
+                  Посмотреть права
+                </button>
+              }
+            />
+          ) : error ? (
+            <div className="error-box" role="alert">
+              {error}
+            </div>
+          ) : launch ? (
+            <iframe
+              ref={frame}
+              title={app.name}
+              srcDoc={launch.html}
+              sandbox="allow-scripts allow-forms"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="loading">
+              <Loader2 className="spin" size={22} />
+            </div>
+          )}
+        </div>
+      ) : tab === 'versions' ? (
+        <div className="surface detail-surface">
+          <div className="section-title">
+            <div>
+              <h3>История публикаций</h3>
+              <p className="muted small-text">
+                Откат меняет код. Данные и права доступа сохраняются.
+              </p>
+            </div>
+            {app.management_role && (
+              <button className="button secondary" onClick={() => void source()}>
+                <Download size={14} />
+                Скачать код
+              </button>
+            )}
+          </div>
+          {releases.map((r) => (
+            <div className="release-row" key={r.id}>
+              <span className="release-icon">
+                <History size={18} />
+              </span>
+              <div>
+                <strong>
+                  Версия {r.version}{' '}
+                  {r.id === app.active_release_id && (
+                    <span className="status-tag">
+                      <i />
+                      Текущая
+                    </span>
+                  )}
+                </strong>
+                <p>
+                  {r.author} · {formatDate(r.created_at)}
+                </p>
+                <code>sha256:{r.digest.slice(0, 20)}…</code>
+              </div>
+              {r.id !== app.active_release_id && app.management_role && (
+                <button
+                  className="button secondary"
+                  onClick={async () => {
+                    try {
+                      await post(`/apps/${app.id}/rollback`, {
+                        release_id: r.id,
+                        expected_release_id: app.active_release_id,
+                      });
+                      await onRefresh();
+                      notify('Версия восстановлена');
+                    } catch (e: any) {
+                      notify(e.message, 'error');
+                    }
+                  }}
+                >
+                  <RotateCcw size={14} />
+                  Восстановить
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : tab === 'comments' ? (
+        <div className="surface detail-surface comments-surface">
+          {!app.data_role || app.status === 'archived' ? (
+            <Empty
+              title="Обсуждение недоступно"
+              text="Для комментариев нужен доступ к действующему приложению."
+            />
+          ) : (
+            <>
+              <h3>Обсуждение команды</h3>
+              <p className="muted small-text">
+                Контекст, идеи и обратная связь — рядом с приложением.
+              </p>
+              {comments.length ? (
+                comments.map((c) => (
+                  <div className="comment" key={c.id}>
+                    <span className="avatar">{c.avatar}</span>
+                    <div>
+                      <strong>{c.name}</strong>
+                      <time>{formatDate(c.created_at)}</time>
+                      <p>{c.body}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <Empty
+                  title="Начните разговор"
+                  text="Поделитесь идеей или оставьте первый комментарий."
+                />
+              )}
+              <form className="comment-form" onSubmit={addComment}>
+                <textarea
+                  aria-label="Комментарий"
+                  placeholder="Что можно улучшить?"
+                  maxLength={2000}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                />
+                <button className="button primary" disabled={!comment.trim() || busy}>
+                  <Send size={15} />
+                  Отправить
+                </button>
+              </form>
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="settings-grid">
+          <section className="surface settings-card">
+            <h3>О приложении</h3>
+            <label className="field-label">
+              Название
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={80}
+                disabled={app.management_role !== 'owner' && !me.admin}
+              />
+            </label>
+            <label className="field-label">
+              Описание
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={300}
+                disabled={app.management_role !== 'owner' && !me.admin}
+              />
+            </label>
+            {(app.management_role === 'owner' || me.admin) && (
+              <>
+                <button
+                  className="button primary"
+                  onClick={async () => {
+                    try {
+                      await api(`/apps/${app.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ name, description }),
+                      });
+                      await onRefresh();
+                      notify('Изменения сохранены');
+                    } catch (e: any) {
+                      notify(e.message, 'error');
+                    }
+                  }}
+                >
+                  Сохранить изменения
+                </button>
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={app.pinned}
+                    onChange={async (e) => {
+                      try {
+                        await api(`/apps/${app.id}`, {
+                          method: 'PATCH',
+                          body: JSON.stringify({ pinned: e.target.checked }),
+                        });
+                        await onRefresh();
+                      } catch (e: any) {
+                        notify(e.message, 'error');
+                      }
+                    }}
+                  />
+                  Не архивировать автоматически
+                </label>
+              </>
+            )}
+          </section>
+          <section className="surface settings-card">
+            <h3>Ответственность и доступ</h3>
+            <p className="muted">Передача владельца не выдаёт ему права на данные.</p>
+            {app.management_role === 'owner' || me.admin ? (
+              <>
+                <label className="field-label">
+                  Владелец
+                  <select value={owner} onChange={(e) => setOwner(e.target.value)}>
+                    {people
+                      .filter((p) => p.active)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <button
+                  className="button secondary"
+                  disabled={owner === app.owner_id}
+                  onClick={async () => {
+                    try {
+                      await post(`/apps/${app.id}/owner`, { owner_id: owner });
+                      await onRefresh();
+                      notify('Владелец изменён');
+                    } catch (e: any) {
+                      notify(e.message, 'error');
+                    }
+                  }}
+                >
+                  Передать владение
+                </button>
+                <label className="field-label">
+                  Заместитель на случай отключения
+                  <select value={backup} onChange={(e) => setBackup(e.target.value)}>
+                    <option value="">Администратор компании</option>
+                    {people
+                      .filter((p) => p.active && p.id !== app.owner_id)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <button
+                  className="button secondary"
+                  onClick={async () => {
+                    try {
+                      await api(`/apps/${app.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ backup_owner_id: backup || null }),
+                      });
+                      await onRefresh();
+                      notify('Заместитель сохранён');
+                    } catch (e: any) {
+                      notify(e.message, 'error');
+                    }
+                  }}
+                >
+                  Сохранить заместителя
+                </button>
+                <div className="danger-section">
+                  <button className="button danger" onClick={onArchive}>
+                    <Archive size={15} />
+                    {app.status === 'archived' ? 'Восстановить приложение' : 'Отправить в архив'}
+                  </button>
+                  <p>Архивирование не удаляет данные.</p>
+                </div>
+              </>
+            ) : (
+              <button className="button secondary" onClick={onShare}>
+                Посмотреть участников
+              </button>
+            )}
+          </section>
+        </div>
+      )}
+    </div>
+  );
 }
-export function Team({me,notify,confirm,onRefresh}:{me:Me;notify:Notify;confirm:(c:any)=>void;onRefresh:()=>Promise<any>}){
-  const [people,setPeople]=useState<any>({users:[],groups:[]});
-  const load=()=>api('/people').then(setPeople);
-  useEffect(()=>{void load().catch(e=>notify(e.message,'error'))},[]);
-  return <><PageHeading title="Хорошая работа — командная" text="Участники пространства и корпоративные группы."/><div className="team-summary">{people.groups.map((g:any)=><div className="surface group-card" key={g.id}><span className="app-icon green"><Users size={20}/></span><div><strong>{g.name}</strong><p>{g.members} участников</p></div></div>)}</div><section className="surface team-table"><div className="section-title"><h3>Участники <span className="muted">{people.users.length}</span></h3><span className="pill"><ShieldCheck size={13}/>{me.mode==='enterprise'?'Корпоративный каталог':'Демонстрационная команда'}</span></div><div className="table-scroll"><table><thead><tr><th>Сотрудник</th><th>Роль</th><th>Статус</th><th/></tr></thead><tbody>{people.users.map((u:any)=><tr key={u.id}><td><div className="person-cell"><span className="avatar">{u.avatar}</span><div><strong>{u.name}{u.id===me.id?' (вы)':''}</strong><small>{u.email}</small></div></div></td><td>{me.admin&&u.active?<select aria-label={`Роль: ${u.name}`} value={u.admin?'admin':'member'} onChange={e=>{const promote=e.target.value==='admin';confirm({title:promote?'Назначить администратора?':'Снять права администратора?',text:`Изменение затронет управление всем пространством для ${u.name}. Права на бизнес-данные останутся отдельными.`,action:async()=>{await api(`/admin/users/${u.id}/role`,{method:'PATCH',body:JSON.stringify({admin:promote})});await load();await onRefresh();notify('Роль обновлена')}})}}><option value="admin">Администратор</option><option value="member">Участник</option></select>:u.admin?'Администратор':'Участник'}</td><td><span className={`status-tag ${u.active?'':'archived'}`}><i/>{u.active?'Активен':'Отключён'}</span></td><td>{me.admin&&u.active&&u.id!==me.id&&<button className="text-button danger-text" onClick={()=>confirm({title:`Отключить ${u.name}?`,text:'Сессии будут отозваны. Приложения перейдут заместителю или администратору без передачи прав на данные.',action:async()=>{await post(`/admin/users/${u.id}/disable`);await load();await onRefresh();notify('Сотрудник отключён')}})}>Отключить</button>}</td></tr>)}</tbody></table></div></section><p className="info-line"><Lock size={14}/>Состав групп обновляется через корпоративный каталог. Публичных приглашений нет.</p></>
+export function Team({
+  me,
+  notify,
+  confirm,
+  onRefresh,
+}: {
+  me: Me;
+  notify: Notify;
+  confirm: (c: any) => void;
+  onRefresh: () => Promise<any>;
+}) {
+  const [people, setPeople] = useState<any>({ users: [], groups: [] });
+  const load = () => api('/people').then(setPeople);
+  useEffect(() => {
+    void load().catch((e) => notify(e.message, 'error'));
+  }, []);
+  return (
+    <>
+      <PageHeading
+        title="Хорошая работа — командная"
+        text="Участники пространства и корпоративные группы."
+      />
+      <div className="team-summary">
+        {people.groups.map((g: any) => (
+          <div className="surface group-card" key={g.id}>
+            <span className="app-icon green">
+              <Users size={20} />
+            </span>
+            <div>
+              <strong>{g.name}</strong>
+              <p>{g.members} участников</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <section className="surface team-table">
+        <div className="section-title">
+          <h3>
+            Участники <span className="muted">{people.users.length}</span>
+          </h3>
+          <span className="pill">
+            <ShieldCheck size={13} />
+            {me.mode === 'enterprise' ? 'Корпоративный каталог' : 'Демонстрационная команда'}
+          </span>
+        </div>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Сотрудник</th>
+                <th>Роль</th>
+                <th>Статус</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {people.users.map((u: any) => (
+                <tr key={u.id}>
+                  <td>
+                    <div className="person-cell">
+                      <span className="avatar">{u.avatar}</span>
+                      <div>
+                        <strong>
+                          {u.name}
+                          {u.id === me.id ? ' (вы)' : ''}
+                        </strong>
+                        <small>{u.email}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    {me.admin && u.active ? (
+                      <select
+                        aria-label={`Роль: ${u.name}`}
+                        value={u.admin ? 'admin' : 'member'}
+                        onChange={(e) => {
+                          const promote = e.target.value === 'admin';
+                          confirm({
+                            title: promote
+                              ? 'Назначить администратора?'
+                              : 'Снять права администратора?',
+                            text: `Изменение затронет управление всем пространством для ${u.name}. Права на бизнес-данные останутся отдельными.`,
+                            action: async () => {
+                              await api(`/admin/users/${u.id}/role`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({ admin: promote }),
+                              });
+                              await load();
+                              await onRefresh();
+                              notify('Роль обновлена');
+                            },
+                          });
+                        }}
+                      >
+                        <option value="admin">Администратор</option>
+                        <option value="member">Участник</option>
+                      </select>
+                    ) : u.admin ? (
+                      'Администратор'
+                    ) : (
+                      'Участник'
+                    )}
+                  </td>
+                  <td>
+                    <span className={`status-tag ${u.active ? '' : 'archived'}`}>
+                      <i />
+                      {u.active ? 'Активен' : 'Отключён'}
+                    </span>
+                  </td>
+                  <td>
+                    {me.admin && u.active && u.id !== me.id && (
+                      <button
+                        className="text-button danger-text"
+                        onClick={() =>
+                          confirm({
+                            title: `Отключить ${u.name}?`,
+                            text: 'Сессии будут отозваны. Приложения перейдут заместителю или администратору без передачи прав на данные.',
+                            action: async () => {
+                              await post(`/admin/users/${u.id}/disable`);
+                              await load();
+                              await onRefresh();
+                              notify('Сотрудник отключён');
+                            },
+                          })
+                        }
+                      >
+                        Отключить
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <p className="info-line">
+        <Lock size={14} />
+        Состав групп обновляется через корпоративный каталог. Публичных приглашений нет.
+      </p>
+    </>
+  );
 }
-export function SettingsPage({me,notify}:{me:Me;notify:Notify}){
-  const [status,setStatus]=useState<any>(),[secrets,setSecrets]=useState<any[]>([]),[name,setName]=useState(''),[value,setValue]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
-  const load=async()=>{const [s,k]=await Promise.all([api('/admin/status'),api('/admin/secrets')]);setStatus(s);setSecrets(k)};
-  useEffect(()=>{if(me.admin)void load().catch(e=>setError(e.message))},[me.admin]);
-  async function save(e:React.FormEvent){e.preventDefault();setBusy(true);try{await post('/admin/secrets',{name,value});setValue('');setName('');await load();notify('Секрет зашифрован и сохранён')}catch(e:any){notify(e.message,'error')}finally{setBusy(false)}}
-  return <><PageHeading title="Ваше пространство. Ваши правила." text="Хранение, безопасность и возможности платформы."/>{!me.admin?<Empty title="Настройки доступны администратору" text="Для изменения корпоративных настроек обратитесь к владельцу пространства."/>:error?<div className="error-box" role="alert">{error}</div>:<div className="settings-grid"><section className="surface settings-card"><div className="section-title"><h3>Контур компании</h3><ShieldCheck size={19}/></div><dl className="settings-list"><div><dt>Организация</dt><dd>{me.organization}</dd></div><div><dt>Режим</dt><dd>{me.mode==='enterprise'?'Корпоративный':'Локальная разработка'}</dd></div><div><dt>Регион установки</dt><dd>{me.region}</dd></div><div><dt>Хранилище</dt><dd>{status?.database||'…'}</dd></div><div><dt>Публичные ссылки</dt><dd><Lock size={12}/>Отключены</dd></div><div><dt>Серверные функции</dt><dd>{status?.runtime||'…'}</dd></div><div><dt>Каталог</dt><dd>{status?.directory_synced_at?formatDate(status.directory_synced_at):me.mode==='enterprise'?'Нужна синхронизация':'Демонстрационные аккаунты'}</dd></div></dl><div className="access-notice"><Database size={19}/><p>Данные приложений, доступы и секреты управляются платформой. Приложения не получают ключи базы.</p></div><button className="button secondary" onClick={async()=>{try{await post('/admin/lifecycle/run');notify('Политика архивирования применена')}catch(e:any){notify(e.message,'error')}}}><Archive size={15}/>Проверить неиспользуемые приложения</button></section><section className="surface settings-card"><div className="section-title"><h3>Хранилище секретов</h3><KeyRound size={19}/></div><p className="muted">Значения шифруются и никогда не возвращаются через API. Использование коннекторами пока не включено.</p><form onSubmit={save}><label className="field-label">Название<input placeholder="SERVICE_API_KEY" pattern="[A-Z][A-Z0-9_]{1,63}" value={name} onChange={e=>setName(e.target.value)} required/></label><label className="field-label">Значение<input type="password" autoComplete="new-password" placeholder="Введите секрет" value={value} onChange={e=>setValue(e.target.value)} required/></label><button className="button primary" disabled={busy||!name||!value}>{busy?<Loader2 size={15} className="spin"/>:<Plus size={15}/>}Сохранить секрет</button></form><div className="secret-list">{secrets.map(s=><div key={s.id}><KeyRound size={15}/><code>{s.name}</code><span>••••••••</span><button className="icon-button" aria-label={`Удалить секрет ${s.name}`} onClick={async()=>{try{await api(`/admin/secrets/${s.id}`,{method:'DELETE'});await load();notify('Секрет удалён')}catch(e:any){notify(e.message,'error')}}}><Trash2 size={15}/></button></div>)}{!secrets.length&&<p className="small-text muted">Секретов пока нет.</p>}</div></section></div>}</>
+export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
+  const [status, setStatus] = useState<any>(),
+    [secrets, setSecrets] = useState<any[]>([]),
+    [name, setName] = useState(''),
+    [value, setValue] = useState(''),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  const load = async () => {
+    const [s, k] = await Promise.all([api('/admin/status'), api('/admin/secrets')]);
+    setStatus(s);
+    setSecrets(k);
+  };
+  useEffect(() => {
+    if (me.admin) void load().catch((e) => setError(e.message));
+  }, [me.admin]);
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await post('/admin/secrets', { name, value });
+      setValue('');
+      setName('');
+      await load();
+      notify('Секрет зашифрован и сохранён');
+    } catch (e: any) {
+      notify(e.message, 'error');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      <PageHeading
+        title="Ваше пространство. Ваши правила."
+        text="Хранение, безопасность и возможности платформы."
+      />
+      {!me.admin ? (
+        <Empty
+          title="Настройки доступны администратору"
+          text="Для изменения корпоративных настроек обратитесь к владельцу пространства."
+        />
+      ) : error ? (
+        <div className="error-box" role="alert">
+          {error}
+        </div>
+      ) : (
+        <div className="settings-grid">
+          <section className="surface settings-card">
+            <div className="section-title">
+              <h3>Контур компании</h3>
+              <ShieldCheck size={19} />
+            </div>
+            <dl className="settings-list">
+              <div>
+                <dt>Организация</dt>
+                <dd>{me.organization}</dd>
+              </div>
+              <div>
+                <dt>Режим</dt>
+                <dd>{me.mode === 'enterprise' ? 'Корпоративный' : 'Локальная разработка'}</dd>
+              </div>
+              <div>
+                <dt>Регион установки</dt>
+                <dd>{me.region}</dd>
+              </div>
+              <div>
+                <dt>Хранилище</dt>
+                <dd>{status?.database || '…'}</dd>
+              </div>
+              <div>
+                <dt>Публичные ссылки</dt>
+                <dd>
+                  <Lock size={12} />
+                  Отключены
+                </dd>
+              </div>
+              <div>
+                <dt>Серверные функции</dt>
+                <dd>{status?.runtime || '…'}</dd>
+              </div>
+              <div>
+                <dt>Каталог</dt>
+                <dd>
+                  {status?.directory_synced_at
+                    ? formatDate(status.directory_synced_at)
+                    : me.mode === 'enterprise'
+                      ? 'Нужна синхронизация'
+                      : 'Демонстрационные аккаунты'}
+                </dd>
+              </div>
+            </dl>
+            <div className="access-notice">
+              <Database size={19} />
+              <p>
+                Данные приложений, доступы и секреты управляются платформой. Приложения не получают
+                ключи базы.
+              </p>
+            </div>
+            <button
+              className="button secondary"
+              onClick={async () => {
+                try {
+                  await post('/admin/lifecycle/run');
+                  notify('Политика архивирования применена');
+                } catch (e: any) {
+                  notify(e.message, 'error');
+                }
+              }}
+            >
+              <Archive size={15} />
+              Проверить неиспользуемые приложения
+            </button>
+          </section>
+          <section className="surface settings-card">
+            <div className="section-title">
+              <h3>Хранилище секретов</h3>
+              <KeyRound size={19} />
+            </div>
+            <p className="muted">
+              Значения шифруются и никогда не возвращаются через API. Использование коннекторами
+              пока не включено.
+            </p>
+            <form onSubmit={save}>
+              <label className="field-label">
+                Название
+                <input
+                  placeholder="SERVICE_API_KEY"
+                  pattern="[A-Z][A-Z0-9_]{1,63}"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </label>
+              <label className="field-label">
+                Значение
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  placeholder="Введите секрет"
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  required
+                />
+              </label>
+              <button className="button primary" disabled={busy || !name || !value}>
+                {busy ? <Loader2 size={15} className="spin" /> : <Plus size={15} />}Сохранить секрет
+              </button>
+            </form>
+            <div className="secret-list">
+              {secrets.map((s) => (
+                <div key={s.id}>
+                  <KeyRound size={15} />
+                  <code>{s.name}</code>
+                  <span>••••••••</span>
+                  <button
+                    className="icon-button"
+                    aria-label={`Удалить секрет ${s.name}`}
+                    onClick={async () => {
+                      try {
+                        await api(`/admin/secrets/${s.id}`, { method: 'DELETE' });
+                        await load();
+                        notify('Секрет удалён');
+                      } catch (e: any) {
+                        notify(e.message, 'error');
+                      }
+                    }}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+              {!secrets.length && <p className="small-text muted">Секретов пока нет.</p>}
+            </div>
+          </section>
+        </div>
+      )}
+    </>
+  );
 }

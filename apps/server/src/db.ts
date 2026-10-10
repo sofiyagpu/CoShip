@@ -2,24 +2,61 @@ import { PGlite } from '@electric-sql/pglite';
 import pg from 'pg';
 import { mkdir } from 'node:fs/promises';
 import type { Config } from './config.js';
-export interface Sql { query<T = any>(sql: string, values?: any[]): Promise<{ rows: T[]; affectedRows?: number }> }
-export interface Database extends Sql { transaction<T>(fn: (tx: Sql) => Promise<T>): Promise<T>; exec(sql: string): Promise<void>; close(): Promise<void> }
+export interface Sql {
+  query<T = any>(sql: string, values?: any[]): Promise<{ rows: T[]; affectedRows?: number }>;
+}
+export interface Database extends Sql {
+  transaction<T>(fn: (tx: Sql) => Promise<T>): Promise<T>;
+  exec(sql: string): Promise<void>;
+  close(): Promise<void>;
+}
 
-export async function openDatabase(config: Pick<Config, 'databaseUrl' | 'dataDir'>): Promise<Database> {
+export async function openDatabase(
+  config: Pick<Config, 'databaseUrl' | 'dataDir'>,
+): Promise<Database> {
   if (config.databaseUrl) {
     const pool = new pg.Pool({ connectionString: config.databaseUrl, max: 10 });
     return {
-      query: async (sql, values) => { const r = await pool.query(sql, values); return { rows: r.rows, affectedRows: r.rowCount ?? 0 }; },
-      exec: async sql => { await pool.query(sql); }, close: () => pool.end(),
-      transaction: async fn => { const c = await pool.connect(); try { await c.query('BEGIN'); const result = await fn({ query: async (sql, v) => { const r = await c.query(sql, v); return { rows: r.rows, affectedRows: r.rowCount ?? 0 }; } }); await c.query('COMMIT'); return result; } catch(e) { await c.query('ROLLBACK'); throw e; } finally { c.release(); } },
+      query: async (sql, values) => {
+        const r = await pool.query(sql, values);
+        return { rows: r.rows, affectedRows: r.rowCount ?? 0 };
+      },
+      exec: async (sql) => {
+        await pool.query(sql);
+      },
+      close: () => pool.end(),
+      transaction: async (fn) => {
+        const c = await pool.connect();
+        try {
+          await c.query('BEGIN');
+          const result = await fn({
+            query: async (sql, v) => {
+              const r = await c.query(sql, v);
+              return { rows: r.rows, affectedRows: r.rowCount ?? 0 };
+            },
+          });
+          await c.query('COMMIT');
+          return result;
+        } catch (e) {
+          await c.query('ROLLBACK');
+          throw e;
+        } finally {
+          c.release();
+        }
+      },
     };
   }
   if (config.dataDir !== ':memory:') await mkdir(config.dataDir, { recursive: true });
   const db = new PGlite(config.dataDir === ':memory:' ? undefined : `${config.dataDir}/postgres`);
   await db.waitReady;
   return {
-    query: (sql, values) => db.query(sql, values), exec: async sql => { await db.exec(sql); }, close: () => db.close(),
-    transaction: fn => db.transaction(tx => fn({ query: (sql, values) => tx.query(sql, values) })),
+    query: (sql, values) => db.query(sql, values),
+    exec: async (sql) => {
+      await db.exec(sql);
+    },
+    close: () => db.close(),
+    transaction: (fn) =>
+      db.transaction((tx) => fn({ query: (sql, values) => tx.query(sql, values) })),
   };
 }
 
