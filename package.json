@@ -21,7 +21,10 @@
     "cli": "tsx packages/cli/src/index.ts",
     "mcp": "tsx packages/cli/src/index.ts mcp serve",
     "runner": "tsx apps/runner/src/main.ts",
-    "check": "npm run typecheck && npm test && npm run build"
+    "check": "npm run typecheck && npm test && npm run build",
+    "directory:sync": "tsx scripts/sync-directory.ts",
+    "format": "prettier --write apps packages scripts tests examples *.ts *.json infra/*.yaml",
+    "format:check": "prettier --check apps packages scripts tests examples *.ts *.json infra/*.yaml"
   },
   "dependencies": {
     "@electric-sql/pglite": "0.5.8",

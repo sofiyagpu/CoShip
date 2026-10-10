@@ -6,6 +6,7 @@ import { audit, hash } from './auth.js';
 import { compileProject, compatible } from './compiler.js';
 import { AppError, fail } from './errors.js';
 
+let compiling=0;
 export async function publishProject(db:Database,actor:Actor,input:{packet:unknown;app_id?:string;expected_release_id?:string|null;idempotency_key:string},runnerEnabled=false) {
   if(!input.idempotency_key || input.idempotency_key.length>100)fail(400,'IDEMPOTENCY_REQUIRED','Нужен ключ публикации');
   if(input.app_id)await requireAccess(db,actor,input.app_id,'publish');
@@ -19,7 +20,9 @@ export async function publishProject(db:Database,actor:Actor,input:{packet:unkno
     return old;
   }
   try {
-    const compiled=await compileProject(input.packet);
+    if(compiling>=2)fail(429,'BUILD_CONCURRENCY','Сейчас выполняются другие сборки. Повторите публикацию позже');
+    compiling++;
+    const compiled=await compileProject(input.packet).finally(()=>{compiling--});
     if(Object.keys(compiled.functions).length && !runnerEnabled)fail(422,'RUNNER_UNAVAILABLE','Для серверных функций подключите Linux-runner с gVisor');
     return await db.transaction(async tx=>{
       const active=(await tx.query('SELECT active FROM users WHERE id=$1 FOR SHARE',[actor.id])).rows[0];
@@ -39,6 +42,8 @@ export async function publishProject(db:Database,actor:Actor,input:{packet:unkno
         await tx.query('INSERT INTO apps(id,org_id,name,description,icon,color,owner_id) VALUES($1,$2,$3,$4,$5,$6,$7)',[appId,actor.org_id,m.name,m.description,m.icon,m.color,actor.id]);
         await tx.query("INSERT INTO grants(app_id,subject_type,subject_id,data_role) VALUES($1,'user',$2,'user')",[appId,actor.id]);
       }
+      const releaseCount=Number((await tx.query('SELECT count(*) AS total FROM releases WHERE app_id=$1',[appId])).rows[0].total);
+      if(releaseCount>=100)fail(429,'RELEASE_QUOTA','Достигнут лимит 100 версий приложения');
       const releaseId=randomUUID();
       const version=Number((await tx.query('SELECT coalesce(max(version),0)+1 AS version FROM releases WHERE app_id=$1',[appId])).rows[0].version);
       await tx.query('INSERT INTO releases(id,app_id,version,manifest,html,functions,packet,digest,author_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)',[releaseId,appId,version,JSON.stringify(m),compiled.html,JSON.stringify(compiled.functions),JSON.stringify(compiled.packet),compiled.digest,actor.id]);

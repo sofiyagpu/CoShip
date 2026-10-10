@@ -25,6 +25,7 @@ export async function sweepLifecycle(db:Database) {
     for(const app of pending)await tx.query("INSERT INTO audit_events(id,org_id,app_id,action) VALUES(gen_random_uuid()::text,$1,$2,'app.archive_pending')",[app.org_id,app.id]);
     const archived=(await tx.query("UPDATE apps SET status='archived',updated_at=now() WHERE status='archive_pending' AND pinned=false AND archive_after<now() RETURNING id,org_id")).rows;
     for(const app of archived)await tx.query("INSERT INTO audit_events(id,org_id,app_id,action) VALUES(gen_random_uuid()::text,$1,$2,'app.auto_archived')",[app.org_id,app.id]);
+    await tx.query("DELETE FROM audit_events WHERE created_at<now()-interval '90 days'");
     await tx.query('DELETE FROM sessions WHERE expires_at<now()');
     await tx.query('DELETE FROM auth_requests WHERE expires_at<now()');
     await tx.query('DELETE FROM cli_requests WHERE expires_at<now()');

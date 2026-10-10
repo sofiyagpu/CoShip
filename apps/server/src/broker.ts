@@ -11,6 +11,7 @@ export const ajv = new Ajv({ strict:false, allErrors:true, validateFormats:false
 export async function dataOperation(db:Database,actor:Actor,appId:string,releaseId:string,raw:unknown) {
   const input=dataRequestSchema.parse(raw), write=['insert','update','delete'].includes(input.operation);
   return db.transaction(async tx=>{
+    if(write)await tx.query('SELECT id FROM apps WHERE id=$1 AND org_id=$2 FOR UPDATE',[appId,actor.org_id]);
     const {app}=await requireAccess(tx,actor,appId,write?'write':'read');
     if(app.active_release_id!==releaseId) fail(409,'RELEASE_CHANGED','Приложение обновилось. Откройте его снова');
     const release=(await tx.query('SELECT manifest FROM releases WHERE id=$1 AND app_id=$2',[releaseId,appId])).rows[0];
