@@ -23,9 +23,9 @@ program.command('capabilities').action(async()=>print(await request('/.well-know
 program.command('rollback').argument('<app-id>').requiredOption('--release <id>').requiredOption('--expected <id>','currently active release').action(async(id,options)=>print(await request(`/api/apps/${encodeURIComponent(id)}/rollback`,{release_id:options.release,expected_release_id:options.expected})));
 program.command('pull').argument('<app-id>').argument('<folder>').action(async(id,folder)=>{
   const root=resolve(folder);try{await access(root);throw new Error('Целевая папка уже существует')}catch(e:any){if(e.code!=='ENOENT')throw e}
-  const packet=await request(`/api/apps/${encodeURIComponent(id)}/source`);await mkdir(root,{recursive:true});await writeFile(join(root,'coship.json'),JSON.stringify(packet.manifest,null,2));
+  const app=await request(`/api/apps/${encodeURIComponent(id)}`);const packet=await request(`/api/apps/${encodeURIComponent(id)}/source`);await mkdir(root,{recursive:true});await writeFile(join(root,'coship.json'),JSON.stringify(packet.manifest,null,2));
   for(const [path,content] of Object.entries(packet.files)){validatePath(path);await mkdir(dirname(join(root,path)),{recursive:true});await writeFile(join(root,path),String(content),{flag:'wx'});}
-  await mkdir(join(root,'.coship'));await writeFile(join(root,'.coship/project.json'),JSON.stringify({server:process.env.COSHIP_SERVER||(await settings()).server,app_id:id},null,2));console.log(`Код скачан в ${root}. Данные не копировались.`);
+  await mkdir(join(root,'.coship'));await writeFile(join(root,'.coship/project.json'),JSON.stringify({server:process.env.COSHIP_SERVER||(await settings()).server,app_id:id,release_id:app.active_release_id},null,2));console.log(`Код скачан в ${root}. Данные не копировались.`);
 });
 program.command('mcp').command('serve').option('--root <folder>','the only folder the agent may publish',process.cwd()).action(async options=>startMcp(resolve(options.root)));
 program.parseAsync().catch(error=>{console.error(error.message);process.exitCode=1});

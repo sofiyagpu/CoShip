@@ -1,0 +1,47 @@
+{
+  "manifestVersion": "1",
+  "name": "Командный трекер",
+  "description": "Задачи, ответственные и статус — в одном месте.",
+  "icon": "check",
+  "color": "green",
+  "runtime": "coship-js-v1",
+  "entry": "index.html",
+  "functions": {},
+  "data": {
+    "profile": "app-shared",
+    "collections": {
+      "items": {
+        "schema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "title",
+            "done"
+          ],
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "done": {
+              "type": "boolean"
+            },
+            "note": {
+              "type": "string",
+              "maxLength": 500
+            }
+          }
+        },
+        "operations": [
+          "list",
+          "get",
+          "insert",
+          "update",
+          "delete"
+        ]
+      }
+    }
+  },
+  "connectors": []
+}

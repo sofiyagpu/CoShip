@@ -42,7 +42,7 @@ export async function login(server:string) {
 export async function packProject(folder:string,allowedRoot?:string):Promise<ProjectPacket> {
   const root=await realpath(folder);
   if(allowedRoot){const allowed=await realpath(allowedRoot),r=relative(allowed,root);if(r==='..'||r.startsWith(`..${sep}`)||r.startsWith(sep))throw new Error('Папка находится за пределами разрешённого MCP root');}
-  const mf=join(root,'coship.json');if((await lstat(mf)).isSymbolicLink())throw new Error('Манифест не может быть символьной ссылкой');
+  const mf=join(root,'coship.json');if((await lstat(mf)).size>65536)throw new Error('Манифест превышает 64 КБ');if((await lstat(mf)).isSymbolicLink())throw new Error('Манифест не может быть символьной ссылкой');
   const manifest=manifestSchema.parse(JSON.parse(await readFile(mf,'utf8'))),files:Record<string,string>={};let bytes=0;
   async function walk(dir:string){for(const entry of await readdir(dir,{withFileTypes:true})){
     if(entry.name.startsWith('.')||['node_modules','coverage','test-results'].includes(entry.name))continue;
@@ -59,13 +59,14 @@ export async function inspect(folder:string,root?:string) { const packet=await p
 export async function publish(folder:string,options:{app?:string;root?:string;key?:string}={}) {
   const root=await realpath(folder),packet=await packProject(root,options.root),server=checkedServer(process.env.COSHIP_SERVER||(await settings()).server);
   await compileProject(packet);
+  for(const path of [join(root,'.coship'),join(root,'.coship/project.json')]){try{if((await lstat(path)).isSymbolicLink())throw new Error('Локальная привязка проекта не может быть символьной ссылкой')}catch(e:any){if(e.code!=='ENOENT')throw e}}
   let binding:any;try{binding=JSON.parse(await readFile(join(root,'.coship/project.json'),'utf8'))}catch{}
   if(binding&&binding.server!==server&&!options.app)throw new Error('Проект привязан к другому серверу. Используйте новую папку или явный --app.');
   const appId=options.app||binding?.app_id;
-  const expected=appId?(await request(`/api/apps/${encodeURIComponent(appId)}`)).active_release_id:undefined;
+  const expected=appId?(!options.app&&binding?.release_id?binding.release_id:(await request(`/api/apps/${encodeURIComponent(appId)}`)).active_release_id):undefined;
   const result=await request('/api/deployments',{packet,idempotency_key:options.key||randomUUID(),...(appId?{app_id:appId,expected_release_id:expected}:{})});
   if(result.status!=='active')throw new Error(`${result.error?.code||result.status}: ${result.error?.message||'Публикация ещё обрабатывается'}`);
-  await mkdir(join(root,'.coship'),{recursive:true,mode:0o700});await writeFile(join(root,'.coship/project.json'),JSON.stringify({server,app_id:result.app_id},null,2));
+  await mkdir(join(root,'.coship'),{recursive:true,mode:0o700});await writeFile(join(root,'.coship/project.json'),JSON.stringify({server,app_id:result.app_id,release_id:result.release_id},null,2));
   const capabilities=await request('/.well-known/coship.json',undefined,{anonymous:true});
   return {...result,url:`${capabilities.consoleUrl||server}/#app/${result.app_id}`};
 }
