@@ -142,6 +142,9 @@ it('applies a full directory snapshot atomically and revokes omitted accounts', 
         headers: { authorization: `Bearer ${directoryToken}` },
         payload: body as any,
       });
+    expect(
+      (await sync({ complete: true, users: [snapshot.users[0], snapshot.users[0]] })).statusCode,
+    ).toBe(400);
     expect((await sync(snapshot)).statusCode).toBe(200);
     const token = await newSession(db, employee, 'browser');
     expect(

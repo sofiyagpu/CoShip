@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { Command } from 'commander';
 import { mkdir, writeFile, readFile, access, realpath } from 'node:fs/promises';
-import { resolve, join, dirname, relative, isAbsolute } from 'node:path';
+import { resolve, join, dirname, relative, isAbsolute, basename } from 'node:path';
 import { templatePacket } from '../../shared/src/templates.js';
 import { validatePath } from '../../../apps/server/src/compiler.js';
 import { login, settings, request, packProject, inspect, publish } from './client.js';
@@ -46,7 +46,7 @@ program
     const root = await realpath(resolve(folder));
     const output = join(
       await realpath(dirname(resolve(options.output))),
-      resolve(options.output).split('/').pop()!,
+      basename(resolve(options.output)),
     );
     const rel = relative(root, output);
     if (!rel || (!rel.startsWith('../') && !isAbsolute(rel)))

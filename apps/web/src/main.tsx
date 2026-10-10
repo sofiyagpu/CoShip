@@ -83,7 +83,12 @@ function Root() {
     return () => window.removeEventListener('hashchange', h);
   }, []);
   const refresh = useCallback(async () => {
-    const [a, events] = await Promise.all([api<AppView[]>('/apps'), api<any[]>('/activity')]);
+    const [a, events, user] = await Promise.all([
+      api<AppView[]>('/apps'),
+      api<any[]>('/activity'),
+      api<Me>('/me'),
+    ]);
+    setMe(user);
     setApps(a);
     setActivity(events);
     return a;

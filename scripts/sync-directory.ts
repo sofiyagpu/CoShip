@@ -61,7 +61,7 @@ async function microsoft(): Promise<DirectoryUser[]> {
   const users: DirectoryUser[] = [];
   for (const user of raw.filter((u) => u.userType === 'Member')) {
     const groups = await pages(
-      `users/${encodeURIComponent(user.id)}/memberOf/microsoft.graph.group?$select=id,displayName`,
+      `users/${encodeURIComponent(user.id)}/memberOf?$select=id,displayName`,
     );
     // OIDC sub is pairwise to the sign-in client, unlike Graph object ID. Use oid in Microsoft login.
     users.push({
@@ -69,7 +69,9 @@ async function microsoft(): Promise<DirectoryUser[]> {
       name: user.displayName,
       email: user.mail || user.userPrincipalName,
       active: user.accountEnabled === true,
-      groups: groups.map((g) => ({ id: g.id, name: g.displayName })),
+      groups: groups
+        .filter((g) => g['@odata.type'] === '#microsoft.graph.group')
+        .map((g) => ({ id: g.id, name: g.displayName })),
     });
   }
   return users;

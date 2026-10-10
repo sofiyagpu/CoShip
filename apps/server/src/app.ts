@@ -61,24 +61,20 @@ export async function createApp(config: Config, providedDb?: Database) {
     if (error instanceof AppError)
       return reply.code(error.status).send({ error: { code: error.code, message: error.message } });
     if ((error as any).statusCode && (error as any).statusCode < 500)
-      return reply
-        .code((error as any).statusCode)
-        .send({
-          error: { code: 'INVALID_REQUEST', message: 'Некорректный запрос или превышен лимит' },
-        });
+      return reply.code((error as any).statusCode).send({
+        error: { code: 'INVALID_REQUEST', message: 'Некорректный запрос или превышен лимит' },
+      });
     // Never log request bodies, SQL parameter values, arbitrary user errors or app stdout.
     server.log.error(
       { errorCode: (error as any).code || 'INTERNAL_ERROR', route: req.routeOptions.url },
       'Request failed',
     );
-    return reply
-      .code(500)
-      .send({
-        error: {
-          code: 'INTERNAL_ERROR',
-          message: 'Не удалось выполнить действие. Попробуйте снова',
-        },
-      });
+    return reply.code(500).send({
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Не удалось выполнить действие. Попробуйте снова',
+      },
+    });
   });
   server.addHook('onRequest', async (req, reply) => {
     reply
