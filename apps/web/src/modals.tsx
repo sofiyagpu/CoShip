@@ -12,7 +12,8 @@ import {
   Copy,
   Users,
   Trash2,
-  KeyRound} from 'lucide-react';
+  KeyRound,
+} from 'lucide-react';
 import { api, post } from './api';
 import { WelcomeMotion } from './welcome-motion';
 import { Logo, AppIcon, Modal, type Me, type Notify } from './ui';
@@ -77,8 +78,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
             </h1>
             <p className="welcome-description">
               Публикуйте проекты из любого AI-инструмента.
-              <br />{' '}
-              Открывайте доступ сотрудникам и отделам.
+              <br /> Открывайте доступ сотрудникам и отделам.
             </p>
             <section
               id="welcome-access"

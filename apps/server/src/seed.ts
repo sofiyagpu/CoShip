@@ -43,35 +43,11 @@ export async function seed(db: Database, config: Config) {
     await db.query('INSERT INTO memberships(user_id,group_id) VALUES($1,$2)', [user, group]);
   const actor = (await db.query<Actor>('SELECT * FROM users WHERE id=$1', ['demo-sofia'])).rows[0];
   const examples = [
-    [
-      'tracker',
-      'Запуск нового продукта',
-      'check',
-      'green',
-      'Задачи по подготовке релиза.',
-    ],
-    [
-      'requests',
-      'Заявки на закупки',
-      'box',
-      'orange',
-      'Запросы на оборудование и услуги.',
-    ],
+    ['tracker', 'Запуск нового продукта', 'check', 'green', 'Задачи по подготовке релиза.'],
+    ['requests', 'Заявки на закупки', 'box', 'orange', 'Запросы на оборудование и услуги.'],
     ['ideas', 'Банк идей', 'sparkles', 'violet', 'Предложения команды и заметки.'],
-    [
-      'tracker',
-      'Онбординг команды',
-      'users',
-      'blue',
-      'Задачи для новых сотрудников.',
-    ],
-    [
-      'requests',
-      'Обратная связь',
-      'chart',
-      'pink',
-      'Отзывы клиентов и вопросы к продукту.',
-    ],
+    ['tracker', 'Онбординг команды', 'users', 'blue', 'Задачи для новых сотрудников.'],
+    ['requests', 'Обратная связь', 'chart', 'pink', 'Отзывы клиентов и вопросы к продукту.'],
     ['blank', 'Контент-план', 'calendar', 'slate', 'Список публикаций и редакционных задач.'],
   ];
   for (const [template, name, icon, color, description] of examples) {

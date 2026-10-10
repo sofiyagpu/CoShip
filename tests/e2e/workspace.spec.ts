@@ -61,3 +61,24 @@ test('mobile dashboard remains navigable without horizontal overflow', async ({ 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/workspace-mobile.png', fullPage: true });
 });
+
+test('welcome motion can be paused, respects reduced motion, and is removed after login', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.locator('html')).toHaveClass(/lenis/);
+  await expect(page.locator('.welcome-vanta canvas')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Приостановить анимацию фона' }).click();
+  await expect(page.locator('.welcome-vanta canvas')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Включить анимацию фона' }).click();
+  await expect(page.locator('.welcome-vanta canvas')).toHaveCount(1);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('.welcome-vanta canvas')).toHaveCount(0);
+  await expect(page.locator('html')).not.toHaveClass(/lenis/);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect(page.locator('html')).toHaveClass(/lenis/);
+  await page.getByRole('button', { name: /София Ким/ }).click();
+  await expect(page.locator('.global-header')).toBeVisible();
+  await expect(page.locator('.welcome-vanta')).toHaveCount(0);
+  await expect(page.locator('html')).not.toHaveClass(/lenis/);
+});

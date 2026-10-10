@@ -19,7 +19,8 @@ import {
   Lock,
   Terminal,
   Copy,
-  Loader2} from 'lucide-react';
+  Loader2,
+} from 'lucide-react';
 import type { AppView } from '../../../packages/shared/src/index';
 import { api, post, relativeTime } from './api';
 import {
