@@ -63,7 +63,7 @@ export function Spinner() {
   return (
     <div className="loading">
       <Loader2 className="spin" size={24} />
-      <span>Загружаем рабочее пространство…</span>
+      <span>Загрузка…</span>
     </div>
   );
 }

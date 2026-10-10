@@ -46,48 +46,25 @@ export function Login({ onLogin }: { onLogin: () => void }) {
     <div className="login-page">
       <div className="login-story">
         <Logo />
-        <div>
-          <span className="eyebrow">МАЛЕНЬКИЙ СОФТ. БОЛЬШИЕ ВОЗМОЖНОСТИ.</span>
-          <h1>
-            От «а что, если»
-            <br />
-            до «уже работает»<span>.</span>
-          </h1>
-          <p>
-            Создавайте с любимым AI-инструментом.
-            <br />
-            Публикуйте и делитесь так же легко, как документом.
-          </p>
-          <div className="login-illustration">
-            <div className="floating-card one">
-              <AppIcon icon="chart" color="violet" />
-              <span>
-                Отчёт для команды
-                <small>
-                  <span className="status-dot" /> Опубликовано
-                </small>
-              </span>
-              <ArrowUpRight size={18} />
-            </div>
-            <div className="floating-card two">
-              <AppIcon icon="check" color="green" />
-              <span>
-                Идея → приложение<small>Теперь доступно всей команде</small>
-              </span>
-              <span className="avatar">СК</span>
-            </div>
-            <div className="orbit" />
-          </div>
+        <div className="login-intro">
+          <span className="login-kicker">РАБОЧЕЕ ПРОСТРАНСТВО</span>
+          <h1>Приложения<br />вашей команды.</h1>
+          <p>Публикуйте внутренние инструменты и выбирайте,<br className="desktop-break" /> кому открыть доступ.</p>
         </div>
-        <span className="login-footer">Ваша команда. Ваши данные. Ваш CoShip.</span>
+        <div className="login-index">
+          <div><span>01</span><strong>Публикация</strong><p>Из редактора или AI-инструмента</p></div>
+          <div><span>02</span><strong>Доступ</strong><p>Для сотрудников и отделов</p></div>
+          <div><span>03</span><strong>Версии</strong><p>История изменений и откат</p></div>
+        </div>
+        <span className="login-footer">CoShip <span>Workspace / 01</span></span>
       </div>
       <div className="login-form">
         <div className="login-box">
           <span className="pill">
             <Building2 size={13} /> {config?.organization || 'Рабочее пространство'}
           </span>
-          <h2>Добро пожаловать</h2>
-          <p>Хорошие идеи заслуживают своего приложения.</p>
+          <h2>Войти в CoShip</h2>
+          <p>{config?.mode === 'enterprise' ? 'Используйте аккаунт вашей компании.' : 'Выберите аккаунт для локальной демонстрации.'}</p>
           {config?.mode === 'enterprise' ? (
             <a className="button primary full" href="/api/auth/oidc">
               <Lock size={16} /> Войти через корпоративный аккаунт
@@ -95,7 +72,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
           ) : (
             <>
               <div className="demo-note">
-                <span className="status-dot" /> Локальная демонстрация · выберите аккаунт
+                <span className="status-dot" /> Демо-аккаунты
               </div>
               <div className="account-list">
                 {users.map((u) => (
@@ -122,7 +99,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
           )}
           <div className="login-security">
             <ShieldCheck size={16} />
-            <span>Доступ и данные под контролем вашей компании</span>
+            <span>Внешний доступ к приложениям отключён</span>
           </div>
         </div>
       </div>
@@ -130,17 +107,19 @@ export function Login({ onLogin }: { onLogin: () => void }) {
   );
 }
 export function CreateModal({
+  initialTab = 'template',
   onClose,
   onCreated,
 }: {
   onClose: () => void;
   onCreated: (id: string) => Promise<void>;
+  initialTab?: 'template' | 'upload' | 'agent';
 }) {
   const [items, setItems] = useState<any[]>([]),
     [selected, setSelected] = useState('tracker'),
     [name, setName] = useState('Командный трекер'),
     [busy, setBusy] = useState(false),
-    [tab, setTab] = useState('template'),
+    [tab, setTab] = useState<string>(initialTab),
     [packet, setPacket] = useState<any>(null),
     [error, setError] = useState('');
   useEffect(() => {
@@ -167,8 +146,8 @@ export function CreateModal({
   }
   return (
     <Modal
-      title="Дайте идее рабочую ссылку"
-      subtitle="Начните с шаблона или принесите своё приложение."
+      title="Новое приложение"
+      subtitle="Выберите шаблон, загрузите проект или подключите агент."
       onClose={() => !busy && onClose()}
       wide
     >
@@ -245,7 +224,7 @@ export function CreateModal({
       ) : (
         <div className="agent-instructions">
           <Terminal size={30} />
-          <h3>Работайте в любимом инструменте</h3>
+          <h3>Публикация через CLI или MCP</h3>
           <p>Подключите CLI или MCP и попросите агента опубликовать проект.</p>
           <pre>
             coship login

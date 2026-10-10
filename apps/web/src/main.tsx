@@ -57,6 +57,7 @@ function Root() {
     [loading, setLoading] = useState(true),
     [notice, setNotice] = useState<Notice | null>(null),
     [create, setCreate] = useState(false),
+    [createTab, setCreateTab] = useState<'template' | 'upload' | 'agent'>('template'),
     [share, setShare] = useState<AppView | null>(null),
     [selected, setSelected] = useState<AppView | null>(null),
     [help, setHelp] = useState(false),
@@ -151,6 +152,7 @@ function Root() {
     setPage(next);
     setSelected(null);
     setSearch('');
+    setFilter('all');
     location.hash = '';
   }
   function open(app: AppView) {
@@ -211,13 +213,13 @@ function Root() {
       `${a.name} ${a.description} ${a.owner_name}`.toLowerCase().includes(search.toLowerCase()),
     );
   const titles: Record<string, string> = {
-    apps: 'Ваши приложения',
-    favorites: 'Всегда под рукой',
-    shared: 'Создано вместе',
+    apps: 'Приложения',
+    favorites: 'Избранное',
+    shared: 'Доступные мне',
     archived: 'Архив приложений',
-    activity: 'История пространства',
-    team: 'Ваша команда',
-    settings: 'Настройки пространства',
+    activity: 'История',
+    team: 'Команда',
+    settings: 'Настройки',
   };
   const nav = [
     ['apps', LayoutGrid, 'Приложения', active.length],
@@ -228,92 +230,25 @@ function Root() {
   const authorization = hash.startsWith('#authorize/') ? hash.split('/')[1] : null;
   return (
     <div className="workspace">
-      <aside className="sidebar">
-        <Logo />
-        <button className="workspace-switch" onClick={() => navigate('settings')}>
-          <span className="workspace-avatar">
-            A<span />
-          </span>
-          <span>
-            <strong>{me.organization}</strong>
-            <small>Рабочее пространство</small>
-          </span>
-          <ChevronDown size={14} />
+      <header className="global-header">
+        <button className="brand-home" onClick={() => navigate('apps')} aria-label="CoShip — приложения"><Logo /></button>
+        <span className="header-divider" />
+        <button className="organization-button" onClick={() => navigate('settings')}>
+          {me.organization}<ChevronDown size={14} />
         </button>
-        <div className="nav-caption">ПРОСТРАНСТВО</div>
-        <nav>
-          {nav.map(([id, Icon, label, count]) => (
-            <button key={id} className={page === id ? 'active' : ''} onClick={() => navigate(id)}>
-              <Icon size={18} />
-              <span>{label}</span>
-              {count !== null && <small>{count}</small>}
-            </button>
+        <nav className="global-nav" aria-label="Основная навигация">
+          {([['apps', 'Приложения'], ['activity', 'История'], ['team', 'Команда']] as const).map(([id,label]) => (
+            <button key={id} onClick={() => navigate(id)} className={(id === 'apps' ? ['apps','shared','favorites','archived'].includes(page) : page === id) ? 'active' : ''}>{label}</button>
           ))}
         </nav>
-        <div className="nav-divider" />
-        <nav>
-          {(
-            [
-              ['activity', Activity, 'История'],
-              ['team', Users, 'Команда'],
-              ['settings', Settings, 'Настройки'],
-            ] as const
-          ).map(([id, Icon, label]) => (
-            <button key={id} className={page === id ? 'active' : ''} onClick={() => navigate(id)}>
-              <Icon size={18} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="local-card">
-            <span>
-              <ShieldCheck size={16} />{' '}
-              {me.mode === 'enterprise' ? 'Корпоративный контур' : 'Локальное пространство'}
-            </span>
-            <p>
-              {me.mode === 'enterprise'
-                ? `Размещение: ${me.region}`
-                : 'Демонстрационные аккаунты и данные'}
-            </p>
-            <div>
-              <i />
-              <span>Данные в вашем контуре</span>
-            </div>
-          </div>
-          <button className="help-button" onClick={() => setHelp(true)}>
-            <HelpCircle size={17} /> Помощь и документация
-            <ArrowUpRight size={14} />
-          </button>
-          <div className="profile">
-            <span className="avatar">{me.avatar}</span>
-            <span>
-              <strong>{me.name}</strong>
-              <small>{me.admin ? 'Администратор' : 'Участник команды'}</small>
-            </span>
-            <button className="icon-button" onClick={() => void logout()} aria-label="Выйти">
-              <LogOut size={16} />
-            </button>
-          </div>
+        <div className="header-actions">
+          <button className="icon-button" onClick={() => setHelp(true)} aria-label="Помощь"><HelpCircle size={19} /></button>
+          <button className={`icon-button ${page === 'settings' ? 'active' : ''}`} onClick={() => navigate('settings')} aria-label="Настройки"><Settings size={19} /></button>
+          <span className="avatar" title={`${me.name} · ${me.admin ? 'Администратор' : 'Участник'}`}>{me.avatar}</span>
+          <button className="icon-button" onClick={() => void logout()} aria-label="Выйти"><LogOut size={17} /></button>
         </div>
-      </aside>
+      </header>
       <main className="main">
-        <header className="topbar">
-          <div className="breadcrumb">
-            <span>{me.organization}</span>
-            <ChevronRight size={14} />
-            <strong>{selected ? selected.name : titles[page]}</strong>
-          </div>
-          <div className="topbar-right">
-            <span className="private-label">
-              <Lock size={12} /> Только для вашей компании
-            </span>
-            <button className="icon-button" onClick={() => setHelp(true)} aria-label="Помощь">
-              <HelpCircle size={18} />
-            </button>
-            <span className="avatar small">{me.avatar}</span>
-          </div>
-        </header>
         {selected ? (
           <AppDetail
             app={selected}
@@ -334,97 +269,21 @@ function Root() {
               <>
                 <div className="page-heading">
                   <div>
-                    <div className="eyebrow">СОЗДАВАЙТЕ. ДЕЛИТЕСЬ. РАБОТАЙТЕ ВМЕСТЕ.</div>
-                    <h1>
-                      {titles[page]}
-                      <span className="heading-count">
-                        {page === 'archived'
-                          ? archived.length
-                          : page === 'favorites'
-                            ? favorites.length
-                            : active.length}
-                      </span>
-                    </h1>
-                    <p>
-                      {page === 'archived'
-                        ? 'Код и данные сохранены. Верните приложение, когда оно снова понадобится.'
-                        : 'Маленькие инструменты, которые делают большую работу.'}
-                    </p>
+                    <div className="workspace-context"><span className="status-dot" />{me.organization}<span className="context-separator">/</span>{me.mode === 'enterprise' ? me.region : 'Локальная версия'}</div>
+                    <h1>{titles[page]}<span className="heading-count">{page === 'archived' ? archived.length : page === 'favorites' ? favorites.length : page === 'shared' ? active.filter(a => a.owner_id !== me.id).length : active.length}</span></h1>
+                    <p>{page === 'archived' ? 'Архивные приложения можно восстановить с сохранением данных.' : 'Открывайте приложения, управляйте доступом и публикуйте обновления.'}</p>
                   </div>
-                  <button className="button primary" onClick={() => setCreate(true)}>
-                    <Plus size={18} />
-                    Создать приложение
-                  </button>
+                  <div className="heading-actions">
+                    <button className="button secondary" onClick={() => {setCreateTab('upload');setCreate(true)}}><ArrowUpRight size={17} />Загрузить проект</button>
+                    <button className="button primary" onClick={() => {setCreateTab('template');setCreate(true)}}><Plus size={17} />Создать приложение</button>
+                  </div>
                 </div>
-                {page === 'apps' && (
-                  <section className="hero-banner">
-                    <div className="hero-copy">
-                      <span className="hero-label">
-                        <Sparkles size={13} /> ОТ ИДЕИ ДО ПЕРВОЙ ССЫЛКИ
-                      </span>
-                      <h2>
-                        Ваш следующий инструмент
-                        <br />
-                        начинается с «а что, если…»
-                      </h2>
-                      <p>Создайте его с любым AI. Всё остальное — уже в CoShip.</p>
-                      <button onClick={() => setCreate(true)}>
-                        Воплотить идею <ArrowRight size={16} />
-                      </button>
-                    </div>
-                    <div className="hero-art" aria-hidden="true">
-                      <div className="hero-grid" />
-                      <span className="art-circle" />
-                      <div className="art-code">
-                        <span className="code-dots">
-                          <i />
-                          <i />
-                          <i />
-                        </span>
-                        <Code2 size={28} />
-                        <small>ваша идея</small>
-                      </div>
-                      <div className="art-connector">
-                        <span />
-                        <ArrowRight size={18} />
-                      </div>
-                      <div className="art-app">
-                        <span className="art-app-head">
-                          <AppIcon icon="layers" color="green" />
-                          <CheckCircle2 size={17} />
-                        </span>
-                        <strong>Готово к работе</strong>
-                        <div className="art-lines">
-                          <i />
-                          <i />
-                        </div>
-                        <span className="art-team">
-                          <b>СК</b>
-                          <b>АЛ</b>
-                          <b>+2</b>
-                          <small>Вместе лучше</small>
-                        </span>
-                      </div>
-                      <span className="art-spark">✦</span>
-                    </div>
-                  </section>
-                )}
+                <div className="collection-nav" role="navigation" aria-label="Разделы приложений">
+                  {nav.map(([id, Icon, label, count]) => <button key={id} className={page === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={16} /><span>{id === 'apps' ? 'Все приложения' : label}</span>{count !== null && <small>{count}</small>}</button>)}
+                </div>
                 <div className="toolbar">
-                  <div className="filter-tabs">
-                    {[
-                      ['all', 'Все приложения'],
-                      ['mine', 'Мои'],
-                      ['team', 'Командные'],
-                    ].map(([id, label]) => (
-                      <button
-                        key={id}
-                        className={filter === id ? 'selected' : ''}
-                        onClick={() => setFilter(id)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+
+                  <label className="owner-filter"><span>Владелец</span><select aria-label="Фильтр приложений" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">Все</option><option value="mine">Только мои</option><option value="team">С общим доступом</option></select></label>
                   <div className="toolbar-right">
                     <label className="search-box">
                       <Search size={16} />
@@ -470,11 +329,11 @@ function Root() {
                 </div>
                 {!displayed.length && (
                   <Empty
-                    title={search ? 'Ничего не нашлось' : 'Здесь есть место для новой идеи'}
+                    title={search ? 'Приложения не найдены' : 'Нет приложений'}
                     text={
                       search
                         ? 'Попробуйте другое название или сбросьте фильтр.'
-                        : 'Создайте первый инструмент или откройте доступ к существующему.'
+                        : 'Создайте приложение или выберите другой раздел.'
                     }
                     action={
                       <button className="button secondary" onClick={() => setCreate(true)}>
@@ -484,52 +343,17 @@ function Root() {
                     }
                   />
                 )}
-                {page === 'apps' && (
-                  <div className="bottom-grid">
-                    <section className="activity-panel">
-                      <div className="section-title">
-                        <h3>Последние события</h3>
-                        <button onClick={() => navigate('activity')}>
-                          Вся история <ArrowRight size={14} />
-                        </button>
-                      </div>
-                      {activity.slice(0, 3).map((event) => (
-                        <ActivityRow key={event.id} event={event} />
-                      ))}
-                      {!activity.length && (
-                        <p className="muted">Здесь появится история вашей команды.</p>
-                      )}
-                    </section>
-                    <section className="publish-panel">
-                      <span className="terminal-icon">
-                        <Terminal size={21} />
-                      </span>
-                      <div>
-                        <h3>Ваш агент. Наш деплой.</h3>
-                        <p>Одна команда — и приложение готово к работе.</p>
-                        <button onClick={() => setHelp(true)}>
-                          <code>coship publish .</code>
-                          <ArrowUpRight size={16} />
-                        </button>
-                      </div>
-                    </section>
-                  </div>
-                )}
-                <footer className="page-footer">
-                  <span>
-                    <Lock size={12} /> Приложения закрыты по умолчанию
-                  </span>
-                  <span>
-                    Сделано для маленьких команд с большими идеями{' '}
-                    <span className="tiny-star">✦</span>
-                  </span>
-                </footer>
+                {page === 'apps' && <section className="workspace-tools">
+                  <div><Terminal size={19} /><div><h3>Публикация из вашего редактора</h3><p>CLI и MCP для подключения AI-инструментов.</p></div></div>
+                  <button onClick={() => {setCreateTab('agent');setCreate(true)}}><code>coship publish .</code><ArrowUpRight size={17} /></button>
+                </section>}
+                <footer className="page-footer"><span>CoShip / {me.organization}</span><button onClick={() => setHelp(true)}>Документация <ArrowUpRight size={13} /></button></footer>
               </>
             ) : page === 'activity' ? (
               <>
                 <PageHeading
-                  title="Всё, что происходит"
-                  text="Публикации, доступы и изменения — в одной истории."
+                  title="История"
+                  text="Публикации и изменения доступа в рабочем пространстве."
                 />
                 <div className="surface activity-full">
                   {activity.map((e) => (
@@ -554,13 +378,14 @@ function Root() {
       {notice && <Toast notice={notice} />}{' '}
       {create && (
         <CreateModal
+          initialTab={createTab}
           onClose={() => setCreate(false)}
           onCreated={async (id) => {
             setCreate(false);
             const all = await refresh();
             const app = all.find((a) => a.id === id);
             if (app) open(app);
-            notify('Приложение опубликовано. Теперь можно поделиться.');
+            notify('Приложение опубликовано');
           }}
         />
       )}{' '}
@@ -706,7 +531,7 @@ function AppCard({
           {app.name}
           <ArrowUpRight size={16} />
         </h3>
-        <p>{app.description || 'Маленький инструмент для вашей команды.'}</p>
+        <p>{app.description || 'Без описания'}</p>
       </button>
       <div className="card-tags">
         <span className={`status-tag ${app.status === 'archived' ? 'archived' : ''}`}>
@@ -728,7 +553,7 @@ function AppCard({
               .slice(0, 2)
               .join('')}
           </span>
-          {app.owner_id === me.id ? 'Вы' : app.owner_name.split(' ')[0]}
+          {app.owner_name}
         </span>
         <span>{relativeTime(app.updated_at)}</span>
         <span className="card-lock" title="Закрытое приложение">

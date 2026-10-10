@@ -355,7 +355,7 @@ export function AppDetail({
             <>
               <h3>Обсуждение команды</h3>
               <p className="muted small-text">
-                Контекст, идеи и обратная связь — рядом с приложением.
+                Обсуждение приложения и изменений.
               </p>
               {comments.length ? (
                 comments.map((c) => (
@@ -371,7 +371,7 @@ export function AppDetail({
               ) : (
                 <Empty
                   title="Начните разговор"
-                  text="Поделитесь идеей или оставьте первый комментарий."
+                  text="Добавьте комментарий к приложению."
                 />
               )}
               <form className="comment-form" onSubmit={addComment}>
@@ -552,7 +552,7 @@ export function Team({
   return (
     <>
       <PageHeading
-        title="Хорошая работа — командная"
+        title="Команда"
         text="Участники пространства и корпоративные группы."
       />
       <div className="team-summary">
@@ -709,7 +709,7 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
   return (
     <>
       <PageHeading
-        title="Ваше пространство. Ваши правила."
+        title="Настройки"
         text="Хранение, безопасность и возможности платформы."
       />
       {!me.admin ? (
