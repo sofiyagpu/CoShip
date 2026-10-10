@@ -1,3 +1,4 @@
+import { canonical } from '../../../packages/shared/src/canonical.js';
 import { randomUUID } from 'node:crypto';
 import AjvModule from 'ajv';
 import { dataRequestSchema, type Actor, type Manifest } from '../../../packages/shared/src/index.js';
@@ -15,7 +16,7 @@ export async function dataOperation(db:Database,actor:Actor,appId:string,release
     const release=(await tx.query('SELECT manifest FROM releases WHERE id=$1 AND app_id=$2',[releaseId,appId])).rows[0];
     const manifest=release?.manifest as Manifest;
     const collection=manifest?.data.collections[input.collection];
-    if(!collection || !collection.operations.includes(input.operation)) fail(403,'CAPABILITY_DENIED','Операция не разрешена для этой коллекции');
+    if(!Object.hasOwn(manifest.data.collections,input.collection) || !collection || !collection.operations.includes(input.operation)) fail(403,'CAPABILITY_DENIED','Операция не разрешена для этой коллекции');
     if(['get','update','delete'].includes(input.operation) && !input.id) fail(400,'ID_REQUIRED','Нужен идентификатор записи');
     if(['update','delete'].includes(input.operation) && !input.revision) fail(400,'REVISION_REQUIRED','Нужна версия записи');
     if(['insert','update'].includes(input.operation)) {
@@ -35,7 +36,7 @@ export async function dataOperation(db:Database,actor:Actor,appId:string,release
     } else if(input.operation==='insert') {
       if(!input.idempotency_key) fail(400,'IDEMPOTENCY_REQUIRED','Нужен idempotency_key');
       const existing=(await tx.query('SELECT * FROM records WHERE app_id=$1 AND collection=$2 AND created_by=$3 AND idempotency_key=$4',[appId,input.collection,actor.id,input.idempotency_key])).rows[0];
-      if(existing) { if(JSON.stringify(existing.payload)!==JSON.stringify(input.payload) && JSON.stringify(Object.entries(existing.payload).sort())!==JSON.stringify(Object.entries(input.payload!).sort())) fail(409,'IDEMPOTENCY_CONFLICT','Этот ключ уже использован с другой записью'); output=existing; }
+      if(existing) { if(canonical(existing.payload)!==canonical(input.payload)) fail(409,'IDEMPOTENCY_CONFLICT','Этот ключ уже использован с другой записью'); output=existing; }
       else { const count=Number((await tx.query('SELECT count(*) AS total FROM records WHERE app_id=$1',[appId])).rows[0].total); if(count>=10000) fail(429,'STORAGE_QUOTA','Достигнут лимит 10 000 записей');
         output=(await tx.query('INSERT INTO records(id,org_id,app_id,collection,payload,created_by,idempotency_key) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,payload,revision,created_at,updated_at',[randomUUID(),actor.org_id,appId,input.collection,JSON.stringify(input.payload),actor.id,input.idempotency_key])).rows[0]; }
     } else if(input.operation==='update') {

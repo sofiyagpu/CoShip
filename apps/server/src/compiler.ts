@@ -1,3 +1,4 @@
+import { canonical } from '../../../packages/shared/src/canonical.js';
 import { createHash } from 'node:crypto';
 import { posix } from 'node:path';
 import { parse, serialize, parseFragment } from 'parse5';
@@ -86,9 +87,9 @@ export function compatible(oldPacket:ProjectPacket,newPacket:ProjectPacket) {
     const next=newPacket.manifest.data.collections[name];
     if(!next)fail(409,'DESTRUCTIVE_SCHEMA','Удаление коллекций не поддерживается');
     const before:any=col.schema, after:any=next.schema;
-    for(const [field,value] of Object.entries(before.properties||{}))if(JSON.stringify((after.properties||{})[field])!==JSON.stringify(value))fail(409,'DESTRUCTIVE_SCHEMA','Изменение или удаление существующих полей не поддерживается');
+    for(const [field,value] of Object.entries(before.properties||{}))if(canonical((after.properties||{})[field])!==canonical(value))fail(409,'DESTRUCTIVE_SCHEMA','Изменение или удаление существующих полей не поддерживается');
     if((after.required||[]).some((key:string)=>!(before.required||[]).includes(key)))fail(409,'DESTRUCTIVE_SCHEMA','Новые поля должны быть необязательными');
-    for(const [key,value] of Object.entries(before))if(!['properties','required'].includes(key)&&JSON.stringify(after[key])!==JSON.stringify(value))fail(409,'DESTRUCTIVE_SCHEMA','Изменение ограничений схемы не поддерживается');
+    for(const [key,value] of Object.entries(before))if(!['properties','required'].includes(key)&&canonical(after[key])!==canonical(value))fail(409,'DESTRUCTIVE_SCHEMA','Изменение ограничений схемы не поддерживается');
     for(const key of Object.keys(after))if(!(key in before)&&!['properties','required'].includes(key))fail(409,'DESTRUCTIVE_SCHEMA','Новые ограничения схемы не поддерживаются');
   }
 }

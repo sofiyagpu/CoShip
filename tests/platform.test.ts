@@ -71,7 +71,7 @@ describe('CoShip platform security and lifecycle',()=>{
   it('enforces immutable version targets, idempotent publishing and safe code rollback',async()=>{
     const a=await create(),packet=structuredClone(a.packet);packet.files['index.html']=packet.files['index.html'].replace('Общий список','Новый список');
     const body={packet,app_id:a.appId,expected_release_id:a.release,idempotency_key:randomUUID()};
-    const release=(await request('POST','/api/deployments',owner,body)).json();expect(release.status).toBe('active');
+    const release=(await request('POST','/api/deployments',owner,body)).json();expect(release.status,JSON.stringify(release.error)).toBe('active');
     expect((await request('POST','/api/deployments',owner,body)).json().id).toBe(release.id);
     expect((await request('POST','/api/deployments',owner,{...body,packet:a.packet})).statusCode).toBe(409);
     const conflict=(await request('POST','/api/deployments',owner,{...body,idempotency_key:randomUUID()})).json();expect(conflict.error.code).toBe('RELEASE_CONFLICT');
