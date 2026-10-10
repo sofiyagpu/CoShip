@@ -48,15 +48,36 @@ export function Login({ onLogin }: { onLogin: () => void }) {
         <Logo />
         <div className="login-intro">
           <span className="login-kicker">РАБОЧЕЕ ПРОСТРАНСТВО</span>
-          <h1>Приложения<br />вашей команды.</h1>
-          <p>Публикуйте внутренние инструменты и выбирайте,<br className="desktop-break" /> кому открыть доступ.</p>
+          <h1>
+            Приложения
+            <br />
+            вашей команды.
+          </h1>
+          <p>
+            Публикуйте внутренние инструменты и выбирайте,
+            <br className="desktop-break" /> кому открыть доступ.
+          </p>
         </div>
         <div className="login-index">
-          <div><span>01</span><strong>Публикация</strong><p>Из редактора или AI-инструмента</p></div>
-          <div><span>02</span><strong>Доступ</strong><p>Для сотрудников и отделов</p></div>
-          <div><span>03</span><strong>Версии</strong><p>История изменений и откат</p></div>
+          <div>
+            <span>01</span>
+            <strong>Публикация</strong>
+            <p>Из редактора или AI-инструмента</p>
+          </div>
+          <div>
+            <span>02</span>
+            <strong>Доступ</strong>
+            <p>Для сотрудников и отделов</p>
+          </div>
+          <div>
+            <span>03</span>
+            <strong>Версии</strong>
+            <p>История изменений и откат</p>
+          </div>
         </div>
-        <span className="login-footer">CoShip <span>Workspace / 01</span></span>
+        <span className="login-footer">
+          CoShip <span>Workspace / 01</span>
+        </span>
       </div>
       <div className="login-form">
         <div className="login-box">
@@ -64,7 +85,11 @@ export function Login({ onLogin }: { onLogin: () => void }) {
             <Building2 size={13} /> {config?.organization || 'Рабочее пространство'}
           </span>
           <h2>Войти в CoShip</h2>
-          <p>{config?.mode === 'enterprise' ? 'Используйте аккаунт вашей компании.' : 'Выберите аккаунт для локальной демонстрации.'}</p>
+          <p>
+            {config?.mode === 'enterprise'
+              ? 'Используйте аккаунт вашей компании.'
+              : 'Выберите аккаунт для локальной демонстрации.'}
+          </p>
           {config?.mode === 'enterprise' ? (
             <a className="button primary full" href="/api/auth/oidc">
               <Lock size={16} /> Войти через корпоративный аккаунт

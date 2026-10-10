@@ -354,9 +354,7 @@ export function AppDetail({
           ) : (
             <>
               <h3>Обсуждение команды</h3>
-              <p className="muted small-text">
-                Обсуждение приложения и изменений.
-              </p>
+              <p className="muted small-text">Обсуждение приложения и изменений.</p>
               {comments.length ? (
                 comments.map((c) => (
                   <div className="comment" key={c.id}>
@@ -369,10 +367,7 @@ export function AppDetail({
                   </div>
                 ))
               ) : (
-                <Empty
-                  title="Начните разговор"
-                  text="Добавьте комментарий к приложению."
-                />
+                <Empty title="Начните разговор" text="Добавьте комментарий к приложению." />
               )}
               <form className="comment-form" onSubmit={addComment}>
                 <textarea
@@ -551,10 +546,7 @@ export function Team({
   }, []);
   return (
     <>
-      <PageHeading
-        title="Команда"
-        text="Участники пространства и корпоративные группы."
-      />
+      <PageHeading title="Команда" text="Участники пространства и корпоративные группы." />
       <div className="team-summary">
         {people.groups.map((g: any) => (
           <div className="surface group-card" key={g.id}>
@@ -708,10 +700,7 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
   }
   return (
     <>
-      <PageHeading
-        title="Настройки"
-        text="Хранение, безопасность и возможности платформы."
-      />
+      <PageHeading title="Настройки" text="Хранение, безопасность и возможности платформы." />
       {!me.admin ? (
         <Empty
           title="Настройки доступны администратору"

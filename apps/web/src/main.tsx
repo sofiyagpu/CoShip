@@ -231,21 +231,63 @@ function Root() {
   return (
     <div className="workspace">
       <header className="global-header">
-        <button className="brand-home" onClick={() => navigate('apps')} aria-label="CoShip — приложения"><Logo /></button>
+        <button
+          className="brand-home"
+          onClick={() => navigate('apps')}
+          aria-label="CoShip — приложения"
+        >
+          <Logo />
+        </button>
         <span className="header-divider" />
         <button className="organization-button" onClick={() => navigate('settings')}>
-          {me.organization}<ChevronDown size={14} />
+          {me.organization}
+          <ChevronDown size={14} />
         </button>
         <nav className="global-nav" aria-label="Основная навигация">
-          {([['apps', 'Приложения'], ['activity', 'История'], ['team', 'Команда']] as const).map(([id,label]) => (
-            <button key={id} onClick={() => navigate(id)} className={(id === 'apps' ? ['apps','shared','favorites','archived'].includes(page) : page === id) ? 'active' : ''}>{label}</button>
+          {(
+            [
+              ['apps', 'Приложения'],
+              ['activity', 'История'],
+              ['team', 'Команда'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => navigate(id)}
+              className={
+                (
+                  id === 'apps'
+                    ? ['apps', 'shared', 'favorites', 'archived'].includes(page)
+                    : page === id
+                )
+                  ? 'active'
+                  : ''
+              }
+            >
+              {label}
+            </button>
           ))}
         </nav>
         <div className="header-actions">
-          <button className="icon-button" onClick={() => setHelp(true)} aria-label="Помощь"><HelpCircle size={19} /></button>
-          <button className={`icon-button ${page === 'settings' ? 'active' : ''}`} onClick={() => navigate('settings')} aria-label="Настройки"><Settings size={19} /></button>
-          <span className="avatar" title={`${me.name} · ${me.admin ? 'Администратор' : 'Участник'}`}>{me.avatar}</span>
-          <button className="icon-button" onClick={() => void logout()} aria-label="Выйти"><LogOut size={17} /></button>
+          <button className="icon-button" onClick={() => setHelp(true)} aria-label="Помощь">
+            <HelpCircle size={19} />
+          </button>
+          <button
+            className={`icon-button ${page === 'settings' ? 'active' : ''}`}
+            onClick={() => navigate('settings')}
+            aria-label="Настройки"
+          >
+            <Settings size={19} />
+          </button>
+          <span
+            className="avatar"
+            title={`${me.name} · ${me.admin ? 'Администратор' : 'Участник'}`}
+          >
+            {me.avatar}
+          </span>
+          <button className="icon-button" onClick={() => void logout()} aria-label="Выйти">
+            <LogOut size={17} />
+          </button>
         </div>
       </header>
       <main className="main">
@@ -269,21 +311,79 @@ function Root() {
               <>
                 <div className="page-heading">
                   <div>
-                    <div className="workspace-context"><span className="status-dot" />{me.organization}<span className="context-separator">/</span>{me.mode === 'enterprise' ? me.region : 'Локальная версия'}</div>
-                    <h1>{titles[page]}<span className="heading-count">{page === 'archived' ? archived.length : page === 'favorites' ? favorites.length : page === 'shared' ? active.filter(a => a.owner_id !== me.id).length : active.length}</span></h1>
-                    <p>{page === 'archived' ? 'Архивные приложения можно восстановить с сохранением данных.' : 'Открывайте приложения, управляйте доступом и публикуйте обновления.'}</p>
+                    <div className="workspace-context">
+                      <span className="status-dot" />
+                      {me.organization}
+                      <span className="context-separator">/</span>
+                      {me.mode === 'enterprise' ? me.region : 'Локальная версия'}
+                    </div>
+                    <h1>
+                      {titles[page]}
+                      <span className="heading-count">
+                        {page === 'archived'
+                          ? archived.length
+                          : page === 'favorites'
+                            ? favorites.length
+                            : page === 'shared'
+                              ? active.filter((a) => a.owner_id !== me.id).length
+                              : active.length}
+                      </span>
+                    </h1>
+                    <p>
+                      {page === 'archived'
+                        ? 'Архивные приложения можно восстановить с сохранением данных.'
+                        : 'Открывайте приложения, управляйте доступом и публикуйте обновления.'}
+                    </p>
                   </div>
                   <div className="heading-actions">
-                    <button className="button secondary" onClick={() => {setCreateTab('upload');setCreate(true)}}><ArrowUpRight size={17} />Загрузить проект</button>
-                    <button className="button primary" onClick={() => {setCreateTab('template');setCreate(true)}}><Plus size={17} />Создать приложение</button>
+                    <button
+                      className="button secondary"
+                      onClick={() => {
+                        setCreateTab('upload');
+                        setCreate(true);
+                      }}
+                    >
+                      <ArrowUpRight size={17} />
+                      Загрузить проект
+                    </button>
+                    <button
+                      className="button primary"
+                      onClick={() => {
+                        setCreateTab('template');
+                        setCreate(true);
+                      }}
+                    >
+                      <Plus size={17} />
+                      Создать приложение
+                    </button>
                   </div>
                 </div>
                 <div className="collection-nav" role="navigation" aria-label="Разделы приложений">
-                  {nav.map(([id, Icon, label, count]) => <button key={id} className={page === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={16} /><span>{id === 'apps' ? 'Все приложения' : label}</span>{count !== null && <small>{count}</small>}</button>)}
+                  {nav.map(([id, Icon, label, count]) => (
+                    <button
+                      key={id}
+                      className={page === id ? 'active' : ''}
+                      onClick={() => navigate(id)}
+                    >
+                      <Icon size={16} />
+                      <span>{id === 'apps' ? 'Все приложения' : label}</span>
+                      {count !== null && <small>{count}</small>}
+                    </button>
+                  ))}
                 </div>
                 <div className="toolbar">
-
-                  <label className="owner-filter"><span>Владелец</span><select aria-label="Фильтр приложений" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">Все</option><option value="mine">Только мои</option><option value="team">С общим доступом</option></select></label>
+                  <label className="owner-filter">
+                    <span>Владелец</span>
+                    <select
+                      aria-label="Фильтр приложений"
+                      value={filter}
+                      onChange={(e) => setFilter(e.target.value)}
+                    >
+                      <option value="all">Все</option>
+                      <option value="mine">Только мои</option>
+                      <option value="team">С общим доступом</option>
+                    </select>
+                  </label>
                   <div className="toolbar-right">
                     <label className="search-box">
                       <Search size={16} />
@@ -343,11 +443,32 @@ function Root() {
                     }
                   />
                 )}
-                {page === 'apps' && <section className="workspace-tools">
-                  <div><Terminal size={19} /><div><h3>Публикация из вашего редактора</h3><p>CLI и MCP для подключения AI-инструментов.</p></div></div>
-                  <button onClick={() => {setCreateTab('agent');setCreate(true)}}><code>coship publish .</code><ArrowUpRight size={17} /></button>
-                </section>}
-                <footer className="page-footer"><span>CoShip / {me.organization}</span><button onClick={() => setHelp(true)}>Документация <ArrowUpRight size={13} /></button></footer>
+                {page === 'apps' && (
+                  <section className="workspace-tools">
+                    <div>
+                      <Terminal size={19} />
+                      <div>
+                        <h3>Публикация из вашего редактора</h3>
+                        <p>CLI и MCP для подключения AI-инструментов.</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setCreateTab('agent');
+                        setCreate(true);
+                      }}
+                    >
+                      <code>coship publish .</code>
+                      <ArrowUpRight size={17} />
+                    </button>
+                  </section>
+                )}
+                <footer className="page-footer">
+                  <span>CoShip / {me.organization}</span>
+                  <button onClick={() => setHelp(true)}>
+                    Документация <ArrowUpRight size={13} />
+                  </button>
+                </footer>
               </>
             ) : page === 'activity' ? (
               <>
