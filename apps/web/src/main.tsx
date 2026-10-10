@@ -1,17 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
 import {
-  ArrowUpRight,
-  ArrowRight,
   Plus,
   Search,
   ChevronDown,
-  ChevronRight,
   LayoutGrid,
   Star,
   Users,
   Archive,
-  Activity,
   Settings,
   HelpCircle,
   LogOut,
@@ -20,14 +15,9 @@ import {
   MoreHorizontal,
   Check,
   Lock,
-  ShieldCheck,
   Terminal,
   Copy,
-  Loader2,
-  Sparkles,
-  Code2,
-  CheckCircle2,
-} from 'lucide-react';
+  Loader2} from 'lucide-react';
 import type { AppView } from '../../../packages/shared/src/index';
 import { api, post, relativeTime } from './api';
 import {

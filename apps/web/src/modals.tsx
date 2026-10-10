@@ -12,8 +12,7 @@ import {
   Copy,
   Users,
   Trash2,
-  KeyRound,
-} from 'lucide-react';
+  KeyRound} from 'lucide-react';
 import { api, post } from './api';
 import { Logo, AppIcon, Modal, type Me, type Notify } from './ui';
 import type { Actor, AppView } from '../../../packages/shared/src/index';
@@ -43,94 +42,138 @@ export function Login({ onLogin }: { onLogin: () => void }) {
     }
   }
   return (
-    <div className="login-page">
-      <div className="login-story">
+    <div className="welcome-page">
+      <header className="welcome-header">
         <Logo />
-        <div className="login-intro">
-          <span className="login-kicker">РАБОЧЕЕ ПРОСТРАНСТВО</span>
-          <h1>
-            Приложения
-            <br />
-            вашей команды.
-          </h1>
-          <p>
-            Публикуйте внутренние инструменты и выбирайте,
-            <br className="desktop-break" /> кому открыть доступ.
-          </p>
-        </div>
-        <div className="login-index">
-          <div>
-            <span>01</span>
-            <strong>Публикация</strong>
-            <p>Из редактора или AI-инструмента</p>
-          </div>
-          <div>
-            <span>02</span>
-            <strong>Доступ</strong>
-            <p>Для сотрудников и отделов</p>
-          </div>
-          <div>
-            <span>03</span>
-            <strong>Версии</strong>
-            <p>История изменений и откат</p>
-          </div>
-        </div>
-        <span className="login-footer">
-          CoShip <span>Внутренние приложения</span>
+        <nav aria-label="О платформе">
+          <a href="#welcome-how">Как работает CoShip</a>
+          <a href="#welcome-access">Вход в пространство</a>
+        </nav>
+        <span className="welcome-mode">
+          {config?.mode === 'enterprise' ? config.organization : 'Локальная версия'}
         </span>
-      </div>
-      <div className="login-form">
-        <div className="login-box">
-          <span className="pill">
-            <Building2 size={13} /> {config?.organization || 'Рабочее пространство'}
-          </span>
-          <h2>Войти в CoShip</h2>
-          <p>
-            {config?.mode === 'enterprise'
-              ? 'Используйте аккаунт вашей компании.'
-              : 'Выберите аккаунт для локальной демонстрации.'}
-          </p>
-          {config?.mode === 'enterprise' ? (
-            <a className="button primary full" href="/api/auth/oidc">
-              <Lock size={16} /> Войти через корпоративный аккаунт
-            </a>
-          ) : (
-            <>
-              <div className="demo-note">
-                <span className="status-dot" /> Демо-аккаунты
-              </div>
-              <div className="account-list">
-                {users.map((u) => (
-                  <button key={u.id} onClick={() => void login(u.id)} disabled={!!busy}>
-                    <span className="avatar">{u.avatar}</span>
-                    <span>
-                      <strong>{u.name}</strong>
-                      <small>{u.admin ? 'Администратор пространства' : u.email}</small>
-                    </span>
-                    {busy === u.id ? (
-                      <Loader2 className="spin" size={17} />
-                    ) : (
-                      <ArrowRight size={17} />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-          {error && (
-            <div className="error-box" role="alert">
-              {error}
-            </div>
-          )}
-          <div className="login-security">
-            <ShieldCheck size={16} />
-            <span>Внешний доступ к приложениям отключён</span>
+        <a className="button secondary" href="#welcome-access">
+          Войти <ArrowUpRight size={15} />
+        </a>
+      </header>
+      <main>
+        <section className="welcome-hero" aria-labelledby="welcome-title">
+          <div className="welcome-scene" aria-hidden="true">
+            <div className="scene-plane scene-left" />
+            <div className="scene-plane scene-right" />
+            <div className="scene-horizon" />
           </div>
-        </div>
-      </div>
+          <div className="welcome-content">
+            <div className="welcome-eyebrow">
+              <span />
+              CoShip / Workspace
+            </div>
+            <h1 id="welcome-title">
+              Внутренние приложения.
+              <br />
+              На одной платформе.
+            </h1>
+            <p className="welcome-description">
+              Публикуйте проекты из любого AI-инструмента.
+              <br />{' '}
+              Открывайте доступ сотрудникам и отделам.
+            </p>
+            <section
+              id="welcome-access"
+              className="welcome-access"
+              aria-labelledby="welcome-access-title"
+            >
+              <div className="welcome-access-heading">
+                <Building2 size={18} />
+                <h2 id="welcome-access-title">{config?.organization || 'Рабочее пространство'}</h2>
+                <span>{config?.mode === 'enterprise' ? 'Корпоративный вход' : 'Демо'}</span>
+              </div>
+              {config?.mode === 'enterprise' ? (
+                <div className="welcome-enterprise">
+                  <p>Войдите с аккаунтом вашей компании.</p>
+                  <a className="button primary full" href="/api/auth/oidc">
+                    <Lock size={16} />
+                    Войти через корпоративный аккаунт
+                    <ArrowRight size={17} />
+                  </a>
+                </div>
+              ) : (
+                <>
+                  <p className="welcome-account-hint">
+                    Выберите аккаунт, чтобы открыть рабочее пространство.
+                  </p>
+                  <div className="welcome-accounts">
+                    {users.map((u) => (
+                      <button key={u.id} onClick={() => void login(u.id)} disabled={!!busy}>
+                        <span className="avatar">{u.avatar}</span>
+                        <span>
+                          <strong>{u.name}</strong>
+                          <small>{u.admin ? 'Администратор' : 'Участник команды'}</small>
+                        </span>
+                        {busy === u.id ? (
+                          <Loader2 className="spin" size={17} />
+                        ) : (
+                          <ArrowUpRight size={17} />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+              {!config && !error && (
+                <div className="welcome-loading">
+                  <Loader2 className="spin" size={16} />
+                  Загрузка…
+                </div>
+              )}
+              {error && (
+                <div className="error-box" role="alert">
+                  {error}
+                </div>
+              )}
+              <div className="welcome-access-note">
+                <Lock size={12} />
+                <span>
+                  {config?.mode === 'enterprise'
+                    ? 'Доступ только для участников компании'
+                    : 'Демонстрационные аккаунты и данные'}
+                </span>
+              </div>
+            </section>
+            <a className="welcome-scroll" href="#welcome-how">
+              Как работает CoShip <ArrowRight size={15} />
+            </a>
+          </div>
+        </section>
+        <section className="welcome-how" id="welcome-how" aria-label="Возможности CoShip">
+          <div>
+            <span className="welcome-step">01 / ПУБЛИКАЦИЯ</span>
+            <h2>Из вашего редактора</h2>
+            <p>Загрузите проект или опубликуйте его через CLI и MCP.</p>
+            <code>coship publish .</code>
+          </div>
+          <div>
+            <span className="welcome-step">02 / ДОСТУП</span>
+            <h2>Для нужных людей</h2>
+            <p>Выберите сотрудников и группы. Права приложения определяют доступ к его данным.</p>
+          </div>
+          <div>
+            <span className="welcome-step">03 / УПРАВЛЕНИЕ</span>
+            <h2>С историей изменений</h2>
+            <p>
+              Версии, комментарии и архив. При копировании приложения данные остаются в оригинале.
+            </p>
+          </div>
+        </section>
+      </main>
+      <footer className="welcome-footer">
+        <Logo />
+        <span>Платформа внутренних приложений</span>
+      </footer>
     </div>
   );
 }
+
 export function CreateModal({
   initialTab = 'template',
   onClose,
