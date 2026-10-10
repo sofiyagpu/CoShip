@@ -49,7 +49,7 @@ export async function createApp(config:Config,providedDb?:Database) {
   });
   registerAuth(server,db,config);registerFunctions(server,db,config);
   server.get('/api/health',async()=>{await db.query('SELECT 1');return {ok:true,version:'0.1.0',mode:config.mode};});
-  server.get('/.well-known/coship.json',async()=>({platform:'CoShip',version:'0.1.0',manifestVersion:'1',runtime:'coship-js-v1',publishing:{transport:'json-file-packet',max_bytes:2097152,max_files:100,build:'local modules bundled without executing package scripts'},sdk:{browser:'window.coship',functions:'default export (input, ctx)',data:['list','get','insert','update','delete']},functions:!!config.runnerUrl,connectors:[],dataProfiles:['app-shared'],publicLinks:false,limits:{recordsPerApp:10000,collections:12,functionTimeoutSeconds:10},docs:'/api/docs/sdk'}));
+  server.get('/.well-known/coship.json',async()=>({platform:'CoShip',version:'0.1.0',consoleUrl:config.publicUrl,manifestVersion:'1',runtime:'coship-js-v1',publishing:{transport:'json-file-packet',max_bytes:2097152,max_files:100,build:'local modules bundled without executing package scripts'},sdk:{browser:'window.coship',functions:'default export (input, ctx)',data:['list','get','insert','update','delete']},functions:!!config.runnerUrl,connectors:[],dataProfiles:['app-shared'],publicLinks:false,limits:{recordsPerApp:10000,collections:12,functionTimeoutSeconds:10},docs:'/api/docs/sdk'}));
   server.get('/api/docs/sdk',async(_req,reply)=>reply.type('text/plain').send('CoShip: manifestVersion="1", runtime="coship-js-v1", entry="index.html". Publish POST /api/deployments { packet:{manifest,files}, idempotency_key, app_id?, expected_release_id? }. Browser global coship.data.collection(name): list({limit,cursor}), get(id), insert(payload), update(id,payload,revision), delete(id,revision). coship.functions.invoke(name,input). All data calls run as the current viewer. No raw SQL, secrets, public access or external network. Functions default-export async (input, ctx); ctx.data has the same collection API. Collections use inline JSON Schema. CLI: coship init; coship publish .; coship mcp serve.'));
   async function appView(actor:Actor,appId:string) {
     const a=await access(db,actor,appId),app=a.app;
@@ -98,6 +98,17 @@ export async function createApp(config:Config,providedDb?:Database) {
   server.get('/api/activity',async req=>{const actor=await actorFor(req,db,config,true);const rows=(await db.query('SELECT e.*,u.name AS actor_name,u.avatar,a.name AS app_name FROM audit_events e LEFT JOIN users u ON u.id=e.actor_id LEFT JOIN apps a ON a.id=e.app_id WHERE e.org_id=$1 AND e.action NOT LIKE $2 ORDER BY e.created_at DESC LIMIT 100',[actor.org_id,'data.%'])).rows;if(actor.admin)return rows;const visible=[];for(const row of rows){if(row.app_id){const a=await access(db,actor,row.app_id);if(a.dataRole||a.managementRole)visible.push(row);}else if(row.actor_id===actor.id)visible.push(row);}return visible;});
   async function admin(req:any){const actor=await actorFor(req,db,config,true);if(!actor.admin)fail(403,'ADMIN_REQUIRED','Нужны права администратора');return actor;}
   server.get('/api/admin/status',async req=>{const actor=await admin(req);return {mode:config.mode,region:config.region,database:config.databaseUrl?'PostgreSQL':'PGlite (локальный PostgreSQL)',runtime:config.runnerUrl?'gVisor runner подключён':'Серверные функции не подключены',directory_synced_at:(await db.query('SELECT directory_synced_at FROM organizations WHERE id=$1',[actor.org_id])).rows[0].directory_synced_at,public_links:false,external_connectors:false};});
+  server.patch('/api/admin/users/:id/role',async req=>{
+    const actor=await admin(req),id=(req.params as any).id;
+    const input=z.object({admin:z.boolean()}).strict().parse(req.body);
+    await db.transaction(async tx=>{
+      const admins=(await tx.query('SELECT id FROM users WHERE org_id=$1 AND admin=true AND active=true FOR UPDATE',[actor.org_id])).rows;
+      const user=(await tx.query('SELECT * FROM users WHERE id=$1 AND org_id=$2 AND active=true',[id,actor.org_id])).rows[0];
+      if(!user)fail(404,'USER_NOT_FOUND','Сотрудник не найден');
+      if(user.admin&&!input.admin&&admins.length===1)fail(409,'ADMIN_REQUIRED','В пространстве должен остаться администратор');
+      await tx.query('UPDATE users SET admin=$1 WHERE id=$2',[input.admin,id]);await audit(tx,actor,'user.role_changed',undefined,{user_id:id,admin:input.admin});
+    });return {ok:true};
+  });
   server.post('/api/admin/users/:id/disable',async req=>{const actor=await admin(req);await db.transaction(tx=>disableUser(tx,actor,(req.params as any).id));return {ok:true};});
   server.post('/api/admin/lifecycle/run',async req=>{await admin(req);await sweepLifecycle(db);return {ok:true};});
   server.get('/api/admin/secrets',async req=>{const actor=await admin(req);return (await db.query('SELECT id,name,created_at FROM secrets WHERE org_id=$1 ORDER BY name',[actor.org_id])).rows;});
@@ -106,16 +117,20 @@ export async function createApp(config:Config,providedDb?:Database) {
   server.post('/api/admin/directory/sync',async req=>{
     if(!config.directoryToken || !sameSecret(req.headers.authorization||'',`Bearer ${config.directoryToken}`))fail(403,'DIRECTORY_TOKEN_REQUIRED','Требуется ключ интеграции каталога');
     if(!config.oidcIssuer)fail(409,'OIDC_REQUIRED','Настройте корпоративный IdP');
-    const input=z.object({users:z.array(z.object({subject:z.string().min(1),name:z.string().min(1).max(100),email:z.string().email(),active:z.boolean(),groups:z.array(z.string().max(80)).max(30)}).strict()).max(500)}).strict().parse(req.body);
-    const initiator=(await db.query<Actor>('SELECT * FROM users WHERE org_id=$1 AND admin=true AND active=true ORDER BY id LIMIT 1',[orgId])).rows[0];if(!initiator)fail(409,'ADMIN_REQUIRED','Сначала войдите как начальный администратор');
+    const input=z.object({complete:z.literal(true),users:z.array(z.object({subject:z.string().min(1),name:z.string().min(1).max(100),email:z.string().email(),active:z.boolean(),groups:z.array(z.object({id:z.string().min(1).max(200),name:z.string().min(1).max(80)}).strict()).max(30)}).strict()).max(500)}).strict().parse(req.body);
+    const administrators=(await db.query<Actor>('SELECT * FROM users WHERE org_id=$1 AND admin=true AND active=true ORDER BY id',[orgId])).rows;
+    const initiator=administrators.find(a=>input.users.some(u=>u.active&&actorId(config.oidcIssuer!,u.subject)===a.id));if(!initiator)fail(409,'ADMIN_REQUIRED','Сначала войдите как начальный администратор');
     await db.transaction(async tx=>{
       for(const user of input.users) {
         const id=actorId(config.oidcIssuer!,user.subject);
         await tx.query('INSERT INTO users(id,org_id,name,email,avatar,issuer,subject,active) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(id) DO UPDATE SET name=excluded.name,email=excluded.email',[id,orgId,user.name,user.email,user.name.slice(0,2).toUpperCase(),config.oidcIssuer,user.subject,user.active]);
         if(!user.active && id!==initiator.id)await disableUser(tx,initiator,id);else if(!user.active)fail(409,'ADMIN_REQUIRED','Назначьте другого администратора перед отключением последнего');else await tx.query('UPDATE users SET active=true WHERE id=$1',[id]);
         await tx.query('DELETE FROM memberships WHERE user_id=$1',[id]);
-        for(const name of user.groups){const groupId=`group_${Buffer.from(name).toString('base64url')}`;await tx.query('INSERT INTO groups(id,org_id,name) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[groupId,orgId,name]);await tx.query('INSERT INTO memberships(user_id,group_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[id,groupId]);}
+        for(const group of user.groups){const name=group.name;const groupId=`group_${Buffer.from(group.id).toString('base64url')}`;await tx.query('INSERT INTO groups(id,org_id,name) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[groupId,orgId,name]);await tx.query('INSERT INTO memberships(user_id,group_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[id,groupId]);}
       }
+      const present=input.users.map(u=>actorId(config.oidcIssuer!,u.subject));
+      const existing=(await tx.query('SELECT * FROM users WHERE org_id=$1 AND active=true',[orgId])).rows;
+      for(const user of existing)if(!present.includes(user.id)){if(user.id===initiator.id)fail(409,'ADMIN_REQUIRED','Полный снимок должен включать действующего администратора');await disableUser(tx,initiator,user.id);}
       await tx.query('UPDATE organizations SET directory_synced_at=now() WHERE id=$1',[orgId]);await audit(tx,initiator,'directory.synced',undefined,{count:input.users.length});
     });return {ok:true};
   });

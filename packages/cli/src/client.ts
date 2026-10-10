@@ -66,5 +66,6 @@ export async function publish(folder:string,options:{app?:string;root?:string;ke
   const result=await request('/api/deployments',{packet,idempotency_key:options.key||randomUUID(),...(appId?{app_id:appId,expected_release_id:expected}:{})});
   if(result.status!=='active')throw new Error(`${result.error?.code||result.status}: ${result.error?.message||'Публикация ещё обрабатывается'}`);
   await mkdir(join(root,'.coship'),{recursive:true,mode:0o700});await writeFile(join(root,'.coship/project.json'),JSON.stringify({server,app_id:result.app_id},null,2));
-  return {...result,url:`${server}/#app/${result.app_id}`};
+  const capabilities=await request('/.well-known/coship.json',undefined,{anonymous:true});
+  return {...result,url:`${capabilities.consoleUrl||server}/#app/${result.app_id}`};
 }

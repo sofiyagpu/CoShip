@@ -95,16 +95,18 @@ export function registerAuth(server: FastifyInstance, db: Database, config: Conf
       const response=await fetch(d.token_endpoint,{method:'POST',body:new URLSearchParams({grant_type:'authorization_code',code,client_id:config.oidcClientId!,client_secret:config.oidcClientSecret!,redirect_uri:`${config.publicUrl}/api/auth/callback`,code_verifier:verifier}),signal:AbortSignal.timeout(10000)});
       if(!response.ok) fail(401,'OIDC_FAILED','Не удалось завершить корпоративный вход');
       const tokens=await response.json() as any;
-      const {payload}=await jwtVerify(tokens.id_token,createRemoteJWKSet(new URL(d.jwks_uri)),{issuer:config.oidcIssuer,audience:config.oidcClientId});
+      const {payload}=await jwtVerify(tokens.id_token,createRemoteJWKSet(new URL(d.jwks_uri)),{issuer:config.oidcIssuer,audience:config.oidcClientId,algorithms:['RS256','ES256'],requiredClaims:['exp','iat','sub','nonce']}).catch(()=>fail(401,'INVALID_OIDC_TOKEN','Не удалось проверить корпоративный токен'));
       if(payload.nonce!==nonce || !payload.sub) fail(401,'INVALID_OIDC_TOKEN','Некорректный ответ провайдера');
       if(config.oidcDomain && payload.hd!==config.oidcDomain) fail(403,'WRONG_ORGANIZATION','Аккаунт другой организации');
       if(config.oidcTenant && payload.tid!==config.oidcTenant) fail(403,'WRONG_ORGANIZATION','Аккаунт другого корпоративного каталога');
-      const id=actorId(config.oidcIssuer!,payload.sub), email=String(payload.email || payload.preferred_username || '');
+      const directorySubject=config.oidcTenant?String(payload.oid||''):payload.sub;
+      if(!directorySubject)fail(401,'INVALID_OIDC_TOKEN','Отсутствует идентификатор каталога');
+      const id=actorId(config.oidcIssuer!,directorySubject), email=String(payload.email || payload.preferred_username || '');
       let user=(await db.query('SELECT * FROM users WHERE id=$1',[id])).rows[0];
       if(!user) {
         const firstAdmin=!(await db.query('SELECT id FROM users WHERE org_id=$1 AND admin=true',[orgId])).rows.length;
-        if(!firstAdmin || email.toLowerCase()!==config.adminEmail?.toLowerCase() || (config.oidcDomain && payload.email_verified!==true)) fail(403,'NOT_PROVISIONED','Администратор должен добавить вас через корпоративный каталог');
-        await db.query('INSERT INTO users(id,org_id,name,email,avatar,admin,issuer,subject) VALUES($1,$2,$3,$4,$5,true,$6,$7)',[id,orgId,String(payload.name||email),email,'AD',config.oidcIssuer,payload.sub]);
+        if(!firstAdmin || directorySubject!==config.adminSubject || (config.oidcDomain && payload.email_verified!==true)) fail(403,'NOT_PROVISIONED','Администратор должен добавить вас через корпоративный каталог');
+        await db.query('INSERT INTO users(id,org_id,name,email,avatar,admin,issuer,subject) VALUES($1,$2,$3,$4,$5,true,$6,$7)',[id,orgId,String(payload.name||email),email,'AD',config.oidcIssuer,directorySubject]);
         user={id,active:true};
       }
       if(!user.active) fail(403,'USER_DISABLED','Учётная запись отключена');
