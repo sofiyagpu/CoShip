@@ -76,7 +76,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
           </div>
         </div>
         <span className="login-footer">
-          CoShip <span>Workspace / 01</span>
+          CoShip <span>Внутренние приложения</span>
         </span>
       </div>
       <div className="login-form">
