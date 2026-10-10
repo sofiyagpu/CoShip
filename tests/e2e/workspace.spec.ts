@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 test('create, use, discuss, share, copy and archive an application', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /София Ким/ }).click();
-  await expect(page.getByRole('heading', { name: /Ваши приложения/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Приложения\s*\d*$/ })).toBeVisible();
   await page.screenshot({ path: 'test-results/workspace-desktop.png', fullPage: true });
   await page.getByRole('button', { name: 'Создать приложение', exact: true }).first().click();
   const name = `E2E Tracker ${Date.now()}`;
@@ -46,7 +46,7 @@ test('create, use, discuss, share, copy and archive an application', async ({ pa
     .filter({ has: page.locator('h3') })
     .click();
   await expect(
-    page.frameLocator('iframe').getByText('Здесь начнётся что-то полезное.', { exact: false }),
+    page.frameLocator('iframe').getByText('Пока нет записей.', { exact: false }),
   ).toBeVisible();
   await page.getByRole('button', { name: 'Настройки', exact: true }).last().click();
   await page.getByRole('button', { name: 'Отправить в архив', exact: true }).click();
@@ -57,7 +57,7 @@ test('mobile dashboard remains navigable without horizontal overflow', async ({ 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.getByRole('button', { name: /София Ким/ }).click();
-  await expect(page.getByRole('heading', { name: /Ваши приложения/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^Приложения\s*\d*$/ })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/workspace-mobile.png', fullPage: true });
 });
