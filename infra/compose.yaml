@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: coship
+      POSTGRES_USER: coship
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U coship]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+  app:
+    build:
+      context: ..
+    environment:
+      COSHIP_MODE: enterprise
+      PORT: 4300
+      DATABASE_URL: postgres://coship:${POSTGRES_PASSWORD}@db:5432/coship
+      PUBLIC_URL: ${PUBLIC_URL:?Set HTTPS PUBLIC_URL}
+      COSHIP_ORG_NAME: ${COSHIP_ORG_NAME:-Company}
+      COSHIP_REGION: ${COSHIP_REGION:-KZ}
+      COSHIP_MASTER_KEY: ${COSHIP_MASTER_KEY:?Set COSHIP_MASTER_KEY}
+      COSHIP_DIRECTORY_TOKEN: ${COSHIP_DIRECTORY_TOKEN:?Set directory integration token}
+      COSHIP_ADMIN_EMAIL: ${COSHIP_ADMIN_EMAIL:?Set initial administrator}
+      OIDC_ISSUER: ${OIDC_ISSUER:?Set OIDC_ISSUER}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:?Set OIDC_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:?Set OIDC_CLIENT_SECRET}
+      OIDC_ALLOWED_DOMAIN: ${OIDC_ALLOWED_DOMAIN:-}
+      OIDC_TENANT_ID: ${OIDC_TENANT_ID:-}
+      COSHIP_RUNNER_URL: ${COSHIP_RUNNER_URL:-}
+      COSHIP_RUNNER_KEY: ${COSHIP_RUNNER_KEY:-}
+      COSHIP_BROKER_URL: ${COSHIP_BROKER_URL:-}
+    ports:
+      - 127.0.0.1:4300:4300
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+volumes:
+  postgres-data:
