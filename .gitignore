@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.coship/
+.env
+.env.*
+!.env.example
+test-results/
+playwright-report/
+coverage/
+*.log
+.DS_Store
