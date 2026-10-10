@@ -2,8 +2,8 @@ import { createHash } from 'node:crypto';
 import { posix } from 'node:path';
 import { parse, serialize, parseFragment } from 'parse5';
 import { build, transform } from 'esbuild';
-import { packetSchema, type ProjectPacket } from '../../../../packages/shared/src/index.js';
-import { browserSdk } from '../../../../packages/sdk/src/index.js';
+import { packetSchema, type ProjectPacket } from '../../../packages/shared/src/index.js';
+import { browserSdk } from '../../../packages/sdk/src/index.js';
 import { ajv } from './broker.js';
 import { fail } from './errors.js';
 

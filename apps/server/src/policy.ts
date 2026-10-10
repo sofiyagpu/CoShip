@@ -1,4 +1,4 @@
-import type { Actor, DataRole, ManagementRole } from '../../../../packages/shared/src/index.js';
+import type { Actor, DataRole, ManagementRole } from '../../../packages/shared/src/index.js';
 import type { Sql } from './db.js';
 import { fail } from './errors.js';
 export async function access(db: Sql, actor: Actor, appId: string) {

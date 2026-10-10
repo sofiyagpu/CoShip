@@ -6,7 +6,7 @@ import { actorFor } from './auth.js';
 import { requireAccess } from './policy.js';
 import { dataOperation } from './broker.js';
 import { fail } from './errors.js';
-import type { Actor } from '../../../../packages/shared/src/index.js';
+import type { Actor } from '../../../packages/shared/src/index.js';
 export function sameSecret(a:string,b:string) { const aa=Buffer.from(a),bb=Buffer.from(b);return aa.length===bb.length && timingSafeEqual(aa,bb); }
 export function registerFunctions(server:FastifyInstance,db:Database,config:Config) {
   const invocations=new Map<string,{actor:Actor;appId:string;releaseId:string;token:string;expires:number}>();

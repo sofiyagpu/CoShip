@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import AjvModule from 'ajv';
-import { dataRequestSchema, type Actor, type Manifest } from '../../../../packages/shared/src/index.js';
+import { dataRequestSchema, type Actor, type Manifest } from '../../../packages/shared/src/index.js';
 import type { Database } from './db.js';
 import { requireAccess } from './policy.js';
 import { fail } from './errors.js';

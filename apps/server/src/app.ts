@@ -17,8 +17,8 @@ import { seed } from './seed.js';
 import { disableUser,sweepLifecycle } from './lifecycle.js';
 import { encryptSecret,masterKey } from './secrets.js';
 import { sameSecret,registerFunctions } from './functions.js';
-import { grantSchema,type Actor } from '../../../../packages/shared/src/index.js';
-import { templates,templatePacket } from '../../../../packages/shared/src/templates.js';
+import { grantSchema,type Actor } from '../../../packages/shared/src/index.js';
+import { templates,templatePacket } from '../../../packages/shared/src/templates.js';
 
 export async function createApp(config:Config,providedDb?:Database) {
   const db=providedDb||await openDatabase(config);await migrate(db);await seed(db,config);
@@ -71,7 +71,7 @@ export async function createApp(config:Config,providedDb?:Database) {
   server.post('/api/deployments',async req=>{
     const actor=await actorFor(req,db,config);
     const input=z.object({packet:z.unknown(),app_id:z.string().optional(),expected_release_id:z.string().nullable().optional(),idempotency_key:z.string().min(1).max(100)}).strict().parse(req.body);
-    return publishProject(db,actor,input,!!config.runnerUrl);
+    return publishProject(db,actor,{...input,packet:input.packet},!!config.runnerUrl);
   });
   server.get('/api/deployments/:id',async req=>{const actor=await actorFor(req,db,config);const d=(await db.query('SELECT * FROM deployments WHERE id=$1 AND org_id=$2',[(req.params as any).id,actor.org_id])).rows[0];if(!d)fail(404,'NOT_FOUND','Публикация не найдена');if(d.author_id!==actor.id){if(!d.app_id)fail(403,'ACCESS_DENIED','Нет доступа');await requireAccess(db,actor,d.app_id,'publish');}return d;});
   server.post('/api/apps/:id/favorite',async req=>{const actor=await actorFor(req,db,config,true),id=(req.params as any).id;await requireAccess(db,actor,id,'view');const input=z.object({favorite:z.boolean()}).parse(req.body);if(input.favorite)await db.query('INSERT INTO favorites(app_id,user_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[id,actor.id]);else await db.query('DELETE FROM favorites WHERE app_id=$1 AND user_id=$2',[id,actor.id]);return {ok:true};});

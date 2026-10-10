@@ -1,7 +1,7 @@
 import type { Database, Sql } from './db.js';
 import { audit } from './auth.js';
 import { fail } from './errors.js';
-import type { Actor } from '../../../../packages/shared/src/index.js';
+import type { Actor } from '../../../packages/shared/src/index.js';
 
 export async function disableUser(tx:Sql,actor:Actor,id:string) {
   const user=(await tx.query('SELECT * FROM users WHERE id=$1 AND org_id=$2 FOR UPDATE',[id,actor.org_id])).rows[0];

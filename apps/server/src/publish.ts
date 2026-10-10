@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Actor, ProjectPacket } from '../../../../packages/shared/src/index.js';
+import type { Actor, ProjectPacket } from '../../../packages/shared/src/index.js';
 import type { Database } from './db.js';
 import { requireAccess } from './policy.js';
 import { audit, hash } from './auth.js';

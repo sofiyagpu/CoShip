@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import type { Database } from './db.js';
 import type { Config } from './config.js';
-import type { Actor } from '../../../../packages/shared/src/index.js';
-import { templatePacket } from '../../../../packages/shared/src/templates.js';
+import type { Actor } from '../../../packages/shared/src/index.js';
+import { templatePacket } from '../../../packages/shared/src/templates.js';
 import { publishProject } from './publish.js';
 import { orgId } from './auth.js';
 export async function seed(db:Database,config:Config) {

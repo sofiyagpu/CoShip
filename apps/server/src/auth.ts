@@ -3,7 +3,7 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import type { Database, Sql } from './db.js';
 import type { Config } from './config.js';
-import type { Actor } from '../../../..//packages/shared/src/index.js';
+import type { Actor } from '../../../packages/shared/src/index.js';
 import { fail } from './errors.js';
 export const hash = (s: string) => createHash('sha256').update(s).digest('hex');
 export const orgId = 'org_coship';
