@@ -93,3 +93,13 @@ export function compatible(oldPacket:ProjectPacket,newPacket:ProjectPacket) {
     for(const key of Object.keys(after))if(!(key in before)&&!['properties','required'].includes(key))fail(409,'DESTRUCTIVE_SCHEMA','Новые ограничения схемы не поддерживаются');
   }
 }
+
+/** Platform bootstrap is injected at launch, separately from immutable app code. */
+export function renderApp(html:string,nonce:string) {
+  const document:any=parse(html);let head:any;
+  walk(document,node=>{if(node.tagName==='head')head=node});
+  const sdk=head?.childNodes.find((node:any)=>node.tagName==='script');
+  if(!sdk)fail(500,'INVALID_ARTIFACT','Не найден bootstrap приложения');
+  sdk.childNodes=[{nodeName:'#text',value:browserSdk.replace('__COSHIP_BRIDGE_NONCE__',nonce),parentNode:sdk}];
+  return serialize(document);
+}

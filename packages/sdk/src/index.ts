@@ -14,17 +14,18 @@ export function createClient(call:Call) {
 }
 // Included by the trusted publisher, before application scripts. No bearer token enters the iframe.
 export const browserSdk = `(() => {
-  let port; const pending = new Map(); const queue = [];
-  window.addEventListener('message', e => {
-    if (e.source !== parent || e.data?.type !== 'coship:connect' || !e.ports[0] || port) return;
-    port = e.ports[0];
-    port.onmessage = e => { const p = pending.get(e.data.id); if (!p) return; pending.delete(e.data.id); clearTimeout(p.timer); e.data.error ? p.reject(Object.assign(new Error(e.data.error.message),{code:e.data.error.code})) : p.resolve(e.data.result); };
-    queue.splice(0).forEach(m => port.postMessage(m));
-  });
+  const channel = new MessageChannel(), port = channel.port1;
+  let ready = false; const pending = new Map(); const queue = [];
+  port.onmessage = e => {
+    if(e.data?.type === 'coship:connected') { ready=true; queue.splice(0).forEach(m=>port.postMessage(m)); return; }
+    const p = pending.get(e.data.id); if (!p) return; pending.delete(e.data.id); clearTimeout(p.timer);
+    e.data.error ? p.reject(Object.assign(new Error(e.data.error.message),{code:e.data.error.code})) : p.resolve(e.data.result);
+  };
+  setTimeout(() => parent.postMessage({type:'coship:ready',nonce:'__COSHIP_BRIDGE_NONCE__'},'*',[channel.port2]),0);
   function call(method,args) { return new Promise((resolve,reject) => {
     if(pending.size>=32) return reject(new Error('Слишком много запросов'));
     const id = crypto.randomUUID(), timer=setTimeout(()=>{pending.delete(id);reject(new Error('Истекло время ожидания'));},30000);
-    pending.set(id,{resolve,reject,timer}); const message={id,method,args}; port?port.postMessage(message):queue.push(message);
+    pending.set(id,{resolve,reject,timer}); const message={id,method,args}; ready?port.postMessage(message):queue.push(message);
   }); }
   window.coship = {
     data: { collection: collection => ({
