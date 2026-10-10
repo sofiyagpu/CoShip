@@ -14,6 +14,7 @@ import {
   Trash2,
   KeyRound} from 'lucide-react';
 import { api, post } from './api';
+import { WelcomeMotion } from './welcome-motion';
 import { Logo, AppIcon, Modal, type Me, type Notify } from './ui';
 import type { Actor, AppView } from '../../../packages/shared/src/index';
 
@@ -63,6 +64,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
             <div className="scene-plane scene-right" />
             <div className="scene-horizon" />
           </div>
+          <WelcomeMotion />
           <div className="welcome-content">
             <div className="welcome-eyebrow">
               <span />
