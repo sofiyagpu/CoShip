@@ -81,3 +81,11 @@ test('welcome motion can be paused, respects reduced motion, and is removed afte
   await expect(page.locator('.welcome-vanta')).toHaveCount(0);
   await expect(page.locator('html')).not.toHaveClass(/lenis/);
 });
+
+test('is an installable PWA with an active service worker', async ({ page }) => {
+  await page.goto('/');
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  const cdp = await page.context().newCDPSession(page);
+  const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors');
+  expect(installabilityErrors).toEqual([]);
+});

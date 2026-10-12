@@ -561,6 +561,8 @@ function AppCard({
     </article>
   );
 }
+if (import.meta.env.PROD && 'serviceWorker' in navigator)
+  void navigator.serviceWorker.register('/sw.js').catch(() => {});
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Root />
