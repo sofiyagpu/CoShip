@@ -66,19 +66,19 @@ test('welcome motion can be paused, respects reduced motion, and is removed afte
 }) => {
   await page.goto('/');
   await expect(page.locator('html')).toHaveClass(/lenis/);
-  await expect(page.locator('.welcome-vanta canvas')).toHaveCount(1);
+  await expect(page.locator('.welcome-particles canvas')).toHaveCount(1);
   await page.getByRole('button', { name: 'Приостановить анимацию фона' }).click();
-  await expect(page.locator('.welcome-vanta canvas')).toHaveCount(0);
+  await expect(page.locator('.welcome-particles canvas')).toHaveCount(0);
   await page.getByRole('button', { name: 'Включить анимацию фона' }).click();
-  await expect(page.locator('.welcome-vanta canvas')).toHaveCount(1);
+  await expect(page.locator('.welcome-particles canvas')).toHaveCount(1);
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await expect(page.locator('.welcome-vanta canvas')).toHaveCount(0);
+  await expect(page.locator('.welcome-particles canvas')).toHaveCount(0);
   await expect(page.locator('html')).not.toHaveClass(/lenis/);
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await expect(page.locator('html')).toHaveClass(/lenis/);
   await page.getByRole('button', { name: /София Ким/ }).click();
   await expect(page.locator('.sidebar')).toBeVisible();
-  await expect(page.locator('.welcome-vanta')).toHaveCount(0);
+  await expect(page.locator('.welcome-particles')).toHaveCount(0);
   await expect(page.locator('html')).not.toHaveClass(/lenis/);
 });
 
