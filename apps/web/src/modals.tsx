@@ -83,7 +83,9 @@ export function Login({ onLogin }: { onLogin: () => void }) {
         <section className="welcome-preview" aria-label="Как выглядит CoShip">
           <div className="preview-card">
             <div className="preview-composer">
-              <span className="preview-typing">Учёт заявок на закупку: сумма, статус, ответственный</span>
+              <span className="preview-typing">
+                Учёт заявок на закупку: сумма, статус, ответственный
+              </span>
               <span className="send-button" aria-hidden="true">
                 <ArrowUpIcon size={18} />
               </span>

@@ -1729,7 +1729,7 @@ td select {
   border-radius: 50%;
   background: var(--bg);
   color: var(--text);
-  transform: translateY(calc(var(--i) * var(--i) * 6px));
+  transform: translateY(calc(var(--i) * var(--i) * 2.2px));
 }
 .welcome-statement p {
   max-width: 1000px;
@@ -1780,7 +1780,11 @@ td select {
   border-radius: 36px;
   border: 1px solid var(--line-soft);
   background:
-    radial-gradient(60% 45% at 50% 0%, color-mix(in srgb, var(--accent) 22%, transparent), transparent),
+    radial-gradient(
+      60% 45% at 50% 0%,
+      color-mix(in srgb, var(--accent) 22%, transparent),
+      transparent
+    ),
     var(--bg);
   overflow: hidden;
 }
@@ -1924,7 +1928,7 @@ td select {
   .icon-arc span {
     width: 64px;
     height: 64px;
-    transform: translateY(calc(var(--i) * var(--i) * 4px));
+    transform: translateY(calc(var(--i) * var(--i) * 1.4px));
   }
   .feature {
     grid-template-columns: 1fr;
