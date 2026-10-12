@@ -1,4 +1,16 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  ArrowLeftIcon,
+  BrowserIcon,
+  CommentIcon,
+  CopyIcon,
+  DownloadIcon,
+  GearIcon,
+  HistoryIcon,
+  PeopleIcon,
+  SparkleFillIcon,
+  TrashIcon,
+} from '@primer/octicons-react';
 import type { AppView } from '../../../packages/shared/src/index';
 import { api, post, formatDate } from './api';
 import { AppMark, Empty, PageHeading, Spinner, initials, type Me, type Notify } from './ui';
@@ -206,6 +218,7 @@ export function AppDetail({
   return (
     <div className="detail-page">
       <button className="back-link" onClick={onBack}>
+        <ArrowLeftIcon size={16} />
         Все приложения
       </button>
       <div className="detail-heading">
@@ -213,17 +226,19 @@ export function AppDetail({
         <div>
           <h1>{app.name}</h1>
           <p className="meta">
-            {app.owner_name} · версия {releases[0]?.version ?? app.release_count} ·{' '}
-            {app.record_count} записей · доступ ограничен
+            {app.owner_name} · v{releases[0]?.version ?? app.release_count} · {app.record_count}{' '}
+            записей
           </p>
         </div>
         <div className="detail-actions">
           {app.management_role && (
             <button className="button secondary" onClick={onCopy}>
+              <CopyIcon size={16} />
               Копия
             </button>
           )}
           <button className="button primary" onClick={onShare}>
+            <PeopleIcon size={16} />
             Поделиться
           </button>
         </div>
@@ -231,12 +246,13 @@ export function AppDetail({
       <nav className="tabs" aria-label="Разделы приложения">
         {(
           [
-            ['app', 'Приложение'],
-            ['versions', 'Версии'],
-            ['settings', 'Настройки'],
+            ['app', BrowserIcon, 'Приложение'],
+            ['versions', HistoryIcon, 'Версии'],
+            ['settings', GearIcon, 'Настройки'],
           ] as const
-        ).map(([id, label]) => (
+        ).map(([id, Icon, label]) => (
           <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
+            <Icon size={16} />
             {label}
             {id === 'versions' && <small>{releases.length}</small>}
           </button>
@@ -285,15 +301,10 @@ export function AppDetail({
           </div>
           <aside className="surface thread" aria-label="Совместная работа">
             <header>
-              <h3>Совместная работа</h3>
-              <p className="hint">
-                {canBuild
-                  ? 'Обсуждайте и меняйте приложение запросом к Muse Spark.'
-                  : 'Обсуждение команды. Изменения публикуют владелец и участники с правом публикации.'}
-              </p>
+              <h3>Обсуждение</h3>
             </header>
             {!app.data_role || app.status === 'archived' ? (
-              <p className="hint">Для обсуждения нужен доступ к действующему приложению.</p>
+              <p className="hint">Нужен доступ к действующему приложению.</p>
             ) : (
               <>
                 <div className="thread-list">
@@ -305,7 +316,8 @@ export function AppDetail({
                           <strong>{c.name}</strong>
                           {c.kind === 'prompt' && (
                             <span className="tag">
-                              Muse Spark
+                              <SparkleFillIcon size={12} />
+                              AI
                               {versionOf(c.release_id) ? ` · v${versionOf(c.release_id)}` : ''}
                             </span>
                           )}
@@ -318,21 +330,20 @@ export function AppDetail({
                             disabled={generating}
                             onClick={() => void generate(c.body)}
                           >
-                            Воплотить через Muse Spark
+                            <SparkleFillIcon size={12} />
+                            Воплотить
                           </button>
                         )}
                       </div>
                     </div>
                   ))}
                   {!comments.length && !generating && (
-                    <p className="hint">
-                      Пока тихо. Предложите улучшение — его увидят все участники.
-                    </p>
+                    <p className="hint">Пока тихо.</p>
                   )}
                   {generating && (
                     <div className="message pending">
                       <span className="spinner" />
-                      <p>Muse Spark собирает новую версию…</p>
+                      <p>Собираем новую версию…</p>
                     </div>
                   )}
                 </div>
@@ -351,6 +362,7 @@ export function AppDetail({
                         className={mode === 'comment' ? 'selected' : ''}
                         onClick={() => setMode('comment')}
                       >
+                        <CommentIcon size={14} />
                         Комментарий
                       </button>
                       <button
@@ -358,7 +370,8 @@ export function AppDetail({
                         className={mode === 'prompt' ? 'selected' : ''}
                         onClick={() => setMode('prompt')}
                       >
-                        Изменить через AI
+                        <SparkleFillIcon size={14} />
+                        AI-правка
                       </button>
                     </div>
                   )}
@@ -390,12 +403,10 @@ export function AppDetail({
       ) : tab === 'versions' ? (
         <div className="surface list-surface">
           <div className="section-title">
-            <div>
-              <h3>История публикаций</h3>
-              <p className="hint">Откат меняет код. Данные и права доступа сохраняются.</p>
-            </div>
+            <h3>История публикаций</h3>
             {app.management_role && (
               <button className="button secondary" onClick={() => void source()}>
+                <DownloadIcon size={16} />
                 Скачать код
               </button>
             )}
@@ -500,7 +511,6 @@ export function AppDetail({
           </section>
           <section className="surface settings-card">
             <h3>Ответственность и доступ</h3>
-            <p className="muted">Передача владельца не выдаёт ему права на данные.</p>
             {app.management_role === 'owner' || me.admin ? (
               <>
                 <label className="field-label">
@@ -564,7 +574,6 @@ export function AppDetail({
                   <button className="button danger" onClick={onArchive}>
                     {app.status === 'archived' ? 'Восстановить приложение' : 'Отправить в архив'}
                   </button>
-                  <p>Архивирование не удаляет данные.</p>
                 </div>
               </>
             ) : (
@@ -596,7 +605,7 @@ export function Team({
   }, []);
   return (
     <>
-      <PageHeading title="Команда" text="Участники пространства и корпоративные группы." />
+      <PageHeading title="Команда" />
       <div className="team-summary">
         {people.groups.map((g: any) => (
           <div className="surface group-card" key={g.id}>
@@ -708,9 +717,6 @@ export function Team({
           </table>
         </div>
       </section>
-      <p className="hint">
-        Состав групп обновляется через корпоративный каталог. Публичных приглашений нет.
-      </p>
     </>
   );
 }
@@ -746,7 +752,7 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
   }
   return (
     <>
-      <PageHeading title="Настройки" text="Хранение, безопасность и возможности платформы." />
+      <PageHeading title="Настройки" />
       {!me.admin ? (
         <Empty
           title="Настройки доступны администратору"
@@ -798,12 +804,6 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
                 </dd>
               </div>
             </dl>
-            <div className="access-notice">
-              <p>
-                Данные приложений, доступы и секреты управляются платформой. Приложения не получают
-                ключи базы.
-              </p>
-            </div>
             <button
               className="button secondary"
               onClick={async () => {
@@ -822,10 +822,7 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
             <div className="section-title">
               <h3>Хранилище секретов</h3>
             </div>
-            <p className="muted">
-              Значения шифруются и никогда не возвращаются через API. Использование коннекторами
-              пока не включено.
-            </p>
+            <p className="hint">Значения шифруются и не возвращаются через API.</p>
             <form onSubmit={save}>
               <label className="field-label">
                 Название
@@ -858,7 +855,7 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
                   <code>{s.name}</code>
                   <span>••••••••</span>
                   <button
-                    className="text-button danger-text"
+                    className="icon-button danger-text"
                     aria-label={`Удалить секрет ${s.name}`}
                     onClick={async () => {
                       try {
@@ -870,7 +867,7 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
                       }
                     }}
                   >
-                    Удалить
+                    <TrashIcon size={16} />
                   </button>
                 </div>
               ))}

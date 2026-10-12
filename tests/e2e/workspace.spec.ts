@@ -4,7 +4,7 @@ test('create, use, discuss, share, copy and archive an application', async ({ pa
   await page.getByRole('button', { name: /София Ким/ }).click();
   await expect(page.getByRole('heading', { name: 'Что создадим?' })).toBeVisible();
   await page.screenshot({ path: 'test-results/workspace-desktop.png', fullPage: true });
-  await page.getByRole('button', { name: 'из шаблона', exact: true }).click();
+  await page.getByRole('button', { name: 'Шаблон', exact: true }).click();
   const name = `E2E Tracker ${Date.now()}`;
   await page.getByLabel('Название приложения', { exact: true }).fill(name);
   await page.getByRole('button', { name: 'Создать и опубликовать' }).click();
@@ -77,7 +77,7 @@ test('welcome motion can be paused, respects reduced motion, and is removed afte
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await expect(page.locator('html')).toHaveClass(/lenis/);
   await page.getByRole('button', { name: /София Ким/ }).click();
-  await expect(page.locator('.global-header')).toBeVisible();
+  await expect(page.locator('.sidebar')).toBeVisible();
   await expect(page.locator('.welcome-vanta')).toHaveCount(0);
   await expect(page.locator('html')).not.toHaveClass(/lenis/);
 });
