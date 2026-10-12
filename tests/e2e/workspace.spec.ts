@@ -87,5 +87,6 @@ test('is an installable PWA with an active service worker', async ({ page }) => 
   await page.evaluate(() => navigator.serviceWorker.ready);
   const cdp = await page.context().newCDPSession(page);
   const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors');
-  expect(installabilityErrors).toEqual([]);
+  // Playwright contexts are incognito-like; every other installability rule must pass.
+  expect(installabilityErrors.filter((e) => e.errorId !== 'in-incognito')).toEqual([]);
 });
