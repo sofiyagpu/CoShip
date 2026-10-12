@@ -1,7 +1,7 @@
 {
   "name": "CoShip",
   "short_name": "CoShip",
-  "description": "Внутренние приложения по описанию",
+  "description": "Внутренние приложения из любого AI-агента",
   "lang": "ru",
   "start_url": "/",
   "scope": "/",

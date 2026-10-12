@@ -1,62 +1,52 @@
 import { useEffect, useRef, useState } from 'react';
 import 'lenis/dist/lenis.css';
 
-const palette = ['#0f7b54', '#1fa971', '#4cc38a', '#2bb3a3', '#8fd06f', '#0b5c3f', '#5fb8e8'];
+const reducedQuery = () => window.matchMedia('(prefers-reduced-motion: reduce)');
 
 /** Effects live only on the welcome screen and release their resources on sign-in. */
 export function WelcomeMotion() {
   const canvasHost = useRef<HTMLDivElement>(null);
   const [paused, setPaused] = useState(false);
-  const [reduced, setReduced] = useState(
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-  );
+  const [reduced, setReduced] = useState(() => reducedQuery().matches);
   useEffect(() => {
-    const preference = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const preference = reducedQuery();
     const changed = () => setReduced(preference.matches);
     preference.addEventListener('change', changed);
     return () => preference.removeEventListener('change', changed);
   }, []);
 
+  // Smooth scrolling and scroll reveals. Hidden-until-revealed styles only apply under
+  // .motion-ok, so content stays visible without JS or with reduced motion.
   useEffect(() => {
-    if (reduced || !canvasHost.current) return;
-    const root = canvasHost.current.closest('.welcome-page');
-    if (!root) return;
+    const root = canvasHost.current?.closest('.welcome-page');
+    if (reduced || !root) return;
+    root.classList.add('motion-ok');
+    const reveal = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('revealed');
+          reveal.unobserve(entry.target);
+        }),
+      { threshold: 0.2 },
+    );
+    root.querySelectorAll('[data-reveal]').forEach((el) => reveal.observe(el));
     let disposed = false;
     let cleanup = () => {};
-    void Promise.all([import('gsap'), import('lenis')])
-      .then(([{ gsap }, { default: Lenis }]) => {
+    void import('lenis')
+      .then(({ default: Lenis }) => {
         if (disposed) return;
-        const scrolling = new Lenis({
-          autoRaf: true,
-          anchors: true,
-          duration: 0.85,
-          smoothWheel: true,
-        });
-        const context = gsap.context(() => {
-          gsap.fromTo(
-            '.welcome-mark, .welcome-content h1, .welcome-content .button',
-            { y: 24, opacity: 0 },
-            {
-              y: 0,
-              opacity: 1,
-              duration: 0.9,
-              stagger: 0.1,
-              ease: 'power3.out',
-              clearProps: 'transform,opacity',
-            },
-          );
-        }, root);
-        cleanup = () => {
-          context.revert();
-          scrolling.destroy();
-        };
+        const scrolling = new Lenis({ autoRaf: true, anchors: true, duration: 0.85 });
+        cleanup = () => scrolling.destroy();
       })
       .catch(() => {
-        /* Native scrolling and visible content remain available. */
+        /* Native scrolling remains available. */
       });
     return () => {
       disposed = true;
       cleanup();
+      reveal.disconnect();
+      root.classList.remove('motion-ok');
     };
   }, [reduced]);
 
@@ -69,65 +59,76 @@ export function WelcomeMotion() {
     host.append(canvas);
     let w = 0,
       h = 0,
-      reach = 0,
       frame = 0,
       visible = true,
-      dustColor = '#80868b';
-    let dust: { x: number; y: number }[] = [];
-    let dashes: { ring: number; angle: number; speed: number; len: number; color: string }[] = [];
+      lastMove = -Infinity,
+      dark = false;
+    let dots: { x: number; y: number; seed: number }[] = [];
     const center = { x: 0, y: 0 },
-      target = { x: 0, y: 0 };
-    const readColors = () => {
-      dustColor = getComputedStyle(host).getPropertyValue('--faint').trim() || dustColor;
+      target = { x: 0, y: 0 },
+      started = performance.now();
+    const readTheme = () => {
+      dark = document.documentElement.dataset.theme
+        ? document.documentElement.dataset.theme === 'dark'
+        : matchMedia('(prefers-color-scheme: dark)').matches;
     };
-    // Grey dust everywhere, coloured dashes orbiting a vortex that trails the pointer.
+    // A jittered lattice of particles; a breathing ring around the pointer lights them up.
     const resize = () => {
       const dpr = Math.min(devicePixelRatio, 2);
       w = host.clientWidth;
       h = host.clientHeight;
-      reach = Math.max(w, h) * 0.5;
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      dust = Array.from({ length: Math.round((w * h) / 2400) }, () => ({
-        x: Math.random() * w,
-        y: Math.random() * h,
-      }));
-      dashes = Array.from({ length: 340 }, (_, i) => {
-        const ring = 40 + Math.random() ** 0.8 * reach;
-        return {
-          ring,
-          angle: Math.random() * Math.PI * 2,
-          speed: (0.0008 + Math.random() * 0.0016) * (120 / (ring * 0.25 + 60)),
-          len: 3 + Math.random() * 5,
-          color: palette[i % palette.length],
-        };
-      });
-      center.x = target.x = w * 0.25;
-      center.y = target.y = h * 0.42;
-      readColors();
+      const step = w < 700 ? 20 : 24;
+      dots = [];
+      for (let y = step / 2; y < h; y += step)
+        for (let x = step / 2; x < w; x += step)
+          dots.push({
+            x: x + (Math.random() - 0.5) * step * 0.8,
+            y: y + (Math.random() - 0.5) * step * 0.8,
+            seed: Math.random() * Math.PI * 2,
+          });
+      if (!frame) {
+        center.x = target.x = w / 2;
+        center.y = target.y = h * 0.45;
+      }
+      readTheme();
     };
-    const draw = () => {
-      center.x += (target.x - center.x) * 0.035;
-      center.y += (target.y - center.y) * 0.035;
+    const draw = (now: number) => {
+      const t = (now - started) / 1000;
+      if (now - lastMove > 2500) {
+        target.x = w / 2 + Math.cos(t * 0.23) * w * 0.2;
+        target.y = h * 0.45 + Math.sin(t * 0.31) * h * 0.14;
+      }
+      center.x += (target.x - center.x) * 0.045;
+      center.y += (target.y - center.y) * 0.045;
+      // Intro: the ring bursts out of the centre over the first 1.8 s.
+      const intro = 1 - (1 - Math.min(t / 1.8, 1)) ** 3;
+      const radius = intro * (Math.min(w, h) * 0.34 + Math.sin(t * 0.9) * 22);
+      const width = 60 + 26 * Math.sin(t * 0.55 + 1) + (1 - intro) * 60;
+      const light = dark ? 66 : 54;
       ctx.clearRect(0, 0, w, h);
-      ctx.globalAlpha = 0.55;
-      ctx.fillStyle = dustColor;
-      for (const d of dust) ctx.fillRect(d.x, d.y, 1.2, 1.2);
-      ctx.lineWidth = 2;
       ctx.lineCap = 'round';
-      for (const p of dashes) {
-        p.angle += p.speed;
-        const dx = Math.cos(p.angle),
-          dy = Math.sin(p.angle);
-        const x = center.x + dx * p.ring,
-          y = center.y + dy * p.ring * 0.85;
-        if (x < -10 || y < -10 || x > w + 10 || y > h + 10) continue;
-        ctx.globalAlpha = 0.15 + 0.85 * (1 - p.ring / reach);
-        ctx.strokeStyle = p.color;
+      for (const d of dots) {
+        const dx = d.x - center.x,
+          dy = d.y - center.y,
+          dist = Math.hypot(dx, dy) || 1;
+        const ring = Math.exp(-(((dist - radius) / width) ** 2));
+        if (ring < 0.05) continue;
+        const ux = dx / dist,
+          uy = dy / dist;
+        const push = ring * (12 + Math.sin(t * 2.2 + d.seed) * 4);
+        const x = d.x + ux * push,
+          y = d.y + uy * push,
+          half = (1.5 + ring * 6) / 2;
+        const hue = 212 + 22 * Math.sin(Math.atan2(dy, dx) * 2 + t * 0.5) + 10 * Math.sin(d.seed);
+        ctx.globalAlpha = Math.min(1, ring * 1.4);
+        ctx.lineWidth = 1.2 + ring * 1.4;
+        ctx.strokeStyle = `hsl(${hue} 92% ${light}%)`;
         ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x + dx * p.len, y + dy * p.len);
+        ctx.moveTo(x - ux * half, y - uy * half);
+        ctx.lineTo(x + ux * half, y + uy * half);
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
@@ -140,6 +141,7 @@ export function WelcomeMotion() {
       const box = host.getBoundingClientRect();
       target.x = e.clientX - box.left;
       target.y = e.clientY - box.top;
+      lastMove = performance.now();
     };
     const observer = new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
@@ -150,7 +152,7 @@ export function WelcomeMotion() {
     resized.observe(host);
     observer.observe(host);
     window.addEventListener('pointermove', pointer);
-    window.addEventListener('coship:theme', readColors);
+    window.addEventListener('coship:theme', readTheme);
     document.addEventListener('visibilitychange', resume);
     resume();
     return () => {
@@ -158,7 +160,7 @@ export function WelcomeMotion() {
       resized.disconnect();
       observer.disconnect();
       window.removeEventListener('pointermove', pointer);
-      window.removeEventListener('coship:theme', readColors);
+      window.removeEventListener('coship:theme', readTheme);
       document.removeEventListener('visibilitychange', resume);
       canvas.remove();
     };
@@ -178,5 +180,40 @@ export function WelcomeMotion() {
         </button>
       )}
     </>
+  );
+}
+
+/** Types the headline letter by letter behind a gradient caret; layout is reserved up front. */
+export function TypedHeading({ id, text }: { id: string; text: string }) {
+  const [reduced] = useState(() => reducedQuery().matches);
+  const [count, setCount] = useState(reduced ? text.length : 0);
+  const [caret, setCaret] = useState(!reduced);
+  useEffect(() => {
+    if (reduced) return;
+    let typed = 0,
+      timer = 0;
+    const tick = () => {
+      setCount(++typed);
+      timer =
+        typed < text.length
+          ? window.setTimeout(tick, text[typed - 1] === ' ' ? 70 : 28 + Math.random() * 34)
+          : window.setTimeout(() => setCaret(false), 350);
+    };
+    timer = window.setTimeout(tick, 500);
+    return () => clearTimeout(timer);
+  }, [reduced, text]);
+  return (
+    <h1 id={id}>
+      <span className="visually-hidden">{text}</span>
+      <span aria-hidden="true">
+        {[...text.slice(0, count)].map((char, i) => (
+          <span key={i} className="typed-char">
+            {char}
+          </span>
+        ))}
+        <span className={`typed-caret ${caret ? '' : 'done'}`} />
+        <span className="typed-rest">{text.slice(count)}</span>
+      </span>
+    </h1>
   );
 }
