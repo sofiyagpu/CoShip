@@ -95,7 +95,11 @@ export function Login({ onLogin }: { onLogin: () => void }) {
                           <strong>{u.name}</strong>
                           <small>{u.admin ? 'Администратор' : 'Участник команды'}</small>
                         </span>
-                        {busy === u.id ? <span className="spinner" /> : <ArrowRightIcon size={16} />}
+                        {busy === u.id ? (
+                          <span className="spinner" />
+                        ) : (
+                          <ArrowRightIcon size={16} />
+                        )}
                       </button>
                     ))}
                   </div>
@@ -183,11 +187,7 @@ export function CreateModal({
     }
   }
   return (
-    <Modal
-      title="Новое приложение"
-      onClose={() => !busy && onClose()}
-      wide
-    >
+    <Modal title="Новое приложение" onClose={() => !busy && onClose()} wide>
       <div className="modal-tabs">
         <button className={tab === 'template' ? 'active' : ''} onClick={() => setTab('template')}>
           <RepoTemplateIcon size={16} />
@@ -345,10 +345,7 @@ export function ShareModal({
     }
   }
   return (
-    <Modal
-      title={`Поделиться «${app.name}»`}
-      onClose={onClose}
-    >
+    <Modal title={`Поделиться «${app.name}»`} onClose={onClose}>
       {canManage && (
         <div className="invite-form">
           <label className="field-label">
@@ -492,10 +489,7 @@ export function ShareModal({
 }
 export function HelpModal({ onClose }: { onClose: () => void }) {
   return (
-    <Modal
-      title="Как это работает"
-      onClose={onClose}
-    >
+    <Modal title="Как это работает" onClose={onClose}>
       <div className="help-steps">
         <div>
           <span>1</span>

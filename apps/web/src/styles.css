@@ -1516,8 +1516,7 @@ td select {
   background:
     radial-gradient(35% 45% at 25% 30%, #c9dbff 0%, transparent 70%),
     radial-gradient(30% 45% at 75% 25%, #fbd3e9 0%, transparent 70%),
-    radial-gradient(40% 40% at 50% 75%, #ffe2c2 0%, transparent 70%),
-    var(--surface);
+    radial-gradient(40% 40% at 50% 75%, #ffe2c2 0%, transparent 70%), var(--surface);
 }
 .scene-plane,
 .scene-horizon {

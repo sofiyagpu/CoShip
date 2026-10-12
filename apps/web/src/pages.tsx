@@ -337,9 +337,7 @@ export function AppDetail({
                       </div>
                     </div>
                   ))}
-                  {!comments.length && !generating && (
-                    <p className="hint">Пока тихо.</p>
-                  )}
+                  {!comments.length && !generating && <p className="hint">Пока тихо.</p>}
                   {generating && (
                     <div className="message pending">
                       <span className="spinner" />

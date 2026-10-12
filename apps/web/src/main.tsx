@@ -284,118 +284,120 @@ function Root() {
             </button>
           </div>
         </header>
-      <main className="main">
-        {selected ? (
-          <AppDetail
-            app={selected}
-            me={me}
-            onBack={() => navigate('apps')}
-            onShare={() => setShare(selected)}
-            onCopy={() => void copy(selected)}
-            onArchive={() => archive(selected)}
-            notify={notify}
-            onRefresh={async () => {
-              const a = await refresh();
-              setSelected(a.find((x) => x.id === selected.id) || null);
-            }}
-          />
-        ) : (
-          <div className="page-content">
-            {isApps ? (
-              <>
-                <PromptComposer
-                  me={me}
-                  onCreated={(id) => openCreated(id, 'Muse Spark собрал и опубликовал приложение')}
-                  onOther={(tab) => {
-                    setCreateTab(tab);
-                    setCreate(true);
-                  }}
-                />
-                <div className="section-bar">
-                  <nav className="tabs" aria-label="Разделы приложений">
-                    {sections.map(([id, label, count]) => (
-                      <button
-                        key={id}
-                        className={page === id ? 'active' : ''}
-                        onClick={() => navigate(id)}
+        <main className="main">
+          {selected ? (
+            <AppDetail
+              app={selected}
+              me={me}
+              onBack={() => navigate('apps')}
+              onShare={() => setShare(selected)}
+              onCopy={() => void copy(selected)}
+              onArchive={() => archive(selected)}
+              notify={notify}
+              onRefresh={async () => {
+                const a = await refresh();
+                setSelected(a.find((x) => x.id === selected.id) || null);
+              }}
+            />
+          ) : (
+            <div className="page-content">
+              {isApps ? (
+                <>
+                  <PromptComposer
+                    me={me}
+                    onCreated={(id) =>
+                      openCreated(id, 'Muse Spark собрал и опубликовал приложение')
+                    }
+                    onOther={(tab) => {
+                      setCreateTab(tab);
+                      setCreate(true);
+                    }}
+                  />
+                  <div className="section-bar">
+                    <nav className="tabs" aria-label="Разделы приложений">
+                      {sections.map(([id, label, count]) => (
+                        <button
+                          key={id}
+                          className={page === id ? 'active' : ''}
+                          onClick={() => navigate(id)}
+                        >
+                          {label}
+                          <small>{count}</small>
+                        </button>
+                      ))}
+                    </nav>
+                    <div className="toolbar">
+                      <select
+                        aria-label="Фильтр приложений"
+                        value={filter}
+                        onChange={(e) => setFilter(e.target.value)}
                       >
-                        {label}
-                        <small>{count}</small>
-                      </button>
-                    ))}
-                  </nav>
-                  <div className="toolbar">
-                    <select
-                      aria-label="Фильтр приложений"
-                      value={filter}
-                      onChange={(e) => setFilter(e.target.value)}
-                    >
-                      <option value="all">Все владельцы</option>
-                      <option value="mine">Только мои</option>
-                      <option value="team">С общим доступом</option>
-                    </select>
-                    <div className="segmented">
-                      <button
-                        className={layout === 'grid' ? 'selected' : ''}
-                        onClick={() => setLayout('grid')}
-                        aria-label="Сетка"
-                      >
-                        <TableIcon size={16} />
-                      </button>
-                      <button
-                        className={layout === 'list' ? 'selected' : ''}
-                        onClick={() => setLayout('list')}
-                        aria-label="Список"
-                      >
-                        <ListUnorderedIcon size={16} />
-                      </button>
+                        <option value="all">Все владельцы</option>
+                        <option value="mine">Только мои</option>
+                        <option value="team">С общим доступом</option>
+                      </select>
+                      <div className="segmented">
+                        <button
+                          className={layout === 'grid' ? 'selected' : ''}
+                          onClick={() => setLayout('grid')}
+                          aria-label="Сетка"
+                        >
+                          <TableIcon size={16} />
+                        </button>
+                        <button
+                          className={layout === 'list' ? 'selected' : ''}
+                          onClick={() => setLayout('list')}
+                          aria-label="Список"
+                        >
+                          <ListUnorderedIcon size={16} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className={`app-grid ${layout === 'list' ? 'list-view' : ''}`}>
-                  {displayed.map((app) => (
-                    <AppCard
-                      key={app.id}
-                      app={app}
-                      me={me}
-                      onOpen={() => open(app)}
-                      onFavorite={() => void favorite(app)}
-                      onShare={() => setShare(app)}
-                      onCopy={() => void copy(app)}
-                      onArchive={() => archive(app)}
-                    />
-                  ))}
-                </div>
-                {!displayed.length && (
-                  <Empty
-                    title={search ? 'Приложения не найдены' : 'Здесь пока пусто'}
-                    text={search ? 'Попробуйте другое название.' : 'Опишите приложение выше.'}
-                  />
-                )}
-              </>
-            ) : page === 'activity' ? (
-              <>
-                <PageHeading title="История" />
-                <div className="surface list-surface">
-                  {activity.map((e) => (
-                    <ActivityRow key={e.id} event={e} />
-                  ))}
-                  {!activity.length && (
+                  <div className={`app-grid ${layout === 'list' ? 'list-view' : ''}`}>
+                    {displayed.map((app) => (
+                      <AppCard
+                        key={app.id}
+                        app={app}
+                        me={me}
+                        onOpen={() => open(app)}
+                        onFavorite={() => void favorite(app)}
+                        onShare={() => setShare(app)}
+                        onCopy={() => void copy(app)}
+                        onArchive={() => archive(app)}
+                      />
+                    ))}
+                  </div>
+                  {!displayed.length && (
                     <Empty
-                      title="История пока пуста"
-                      text="Начните с создания первого приложения."
+                      title={search ? 'Приложения не найдены' : 'Здесь пока пусто'}
+                      text={search ? 'Попробуйте другое название.' : 'Опишите приложение выше.'}
                     />
                   )}
-                </div>
-              </>
-            ) : page === 'team' ? (
-              <Team me={me} notify={notify} confirm={setConfirm} onRefresh={refresh} />
-            ) : (
-              <SettingsPage me={me} notify={notify} />
-            )}
-          </div>
-        )}
-      </main>
+                </>
+              ) : page === 'activity' ? (
+                <>
+                  <PageHeading title="История" />
+                  <div className="surface list-surface">
+                    {activity.map((e) => (
+                      <ActivityRow key={e.id} event={e} />
+                    ))}
+                    {!activity.length && (
+                      <Empty
+                        title="История пока пуста"
+                        text="Начните с создания первого приложения."
+                      />
+                    )}
+                  </div>
+                </>
+              ) : page === 'team' ? (
+                <Team me={me} notify={notify} confirm={setConfirm} onRefresh={refresh} />
+              ) : (
+                <SettingsPage me={me} notify={notify} />
+              )}
+            </div>
+          )}
+        </main>
       </div>
       {notice && <Toast notice={notice} />}
       {create && (
