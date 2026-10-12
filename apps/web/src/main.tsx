@@ -1,41 +1,21 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import {
-  ArrowUpRight,
-  Plus,
-  Search,
-  ChevronDown,
-  LayoutGrid,
-  Star,
-  Users,
-  Archive,
-  Settings,
-  HelpCircle,
-  LogOut,
-  Grid2X2,
-  List,
-  MoreHorizontal,
-  Check,
-  Lock,
-  Terminal,
-  Copy,
-  Loader2,
-} from 'lucide-react';
 import type { AppView } from '../../../packages/shared/src/index';
 import { api, post, relativeTime } from './api';
 import {
   Logo,
-  AppIcon,
+  AppMark,
   Spinner,
   Empty,
   Modal,
   Toast,
   PageHeading,
   ActivityRow,
+  initials,
   type Me,
   type Notice,
 } from './ui';
-import { Login, CreateModal, ShareModal, HelpModal, Authorize } from './modals';
+import { Login, CreateModal, ShareModal, HelpModal, Authorize, PromptComposer } from './modals';
 import { AppDetail, Team, SettingsPage } from './pages';
 import './styles.css';
 
@@ -153,6 +133,12 @@ function Root() {
     setPage('apps');
     location.hash = `app/${app.id}`;
   }
+  async function openCreated(id: string, message: string) {
+    const all = await refresh();
+    const app = all.find((a) => a.id === id);
+    if (app) open(app);
+    notify(message);
+  }
   async function favorite(app: AppView) {
     await run(() => post(`/apps/${app.id}/favorite`, { favorite: !app.favorite })).catch(() => {});
   }
@@ -194,7 +180,8 @@ function Root() {
     );
   const active = apps.filter((a) => a.status !== 'archived'),
     favorites = active.filter((a) => a.favorite),
-    archived = apps.filter((a) => a.status === 'archived');
+    archived = apps.filter((a) => a.status === 'archived'),
+    shared = active.filter((a) => a.owner_id !== me.id);
   const displayed = apps
     .filter((a) => (page === 'archived' ? a.status === 'archived' : a.status !== 'archived'))
     .filter((a) => page !== 'favorites' || a.favorite)
@@ -205,21 +192,13 @@ function Root() {
     .filter((a) =>
       `${a.name} ${a.description} ${a.owner_name}`.toLowerCase().includes(search.toLowerCase()),
     );
-  const titles: Record<string, string> = {
-    apps: 'Приложения',
-    favorites: 'Избранное',
-    shared: 'Доступные мне',
-    archived: 'Архив приложений',
-    activity: 'История',
-    team: 'Команда',
-    settings: 'Настройки',
-  };
-  const nav = [
-    ['apps', LayoutGrid, 'Приложения', active.length],
-    ['shared', Users, 'Доступные мне', null],
-    ['favorites', Star, 'Избранное', favorites.length],
-    ['archived', Archive, 'Архив', archived.length],
+  const sections = [
+    ['apps', 'Все', active.length],
+    ['shared', 'Доступные мне', shared.length],
+    ['favorites', 'Избранное', favorites.length],
+    ['archived', 'Архив', archived.length],
   ] as const;
+  const isApps = sections.some(([id]) => id === page);
   const authorization = hash.startsWith('#authorize/') ? hash.split('/')[1] : null;
   return (
     <div className="workspace">
@@ -231,46 +210,28 @@ function Root() {
         >
           <Logo />
         </button>
-        <span className="header-divider" />
-        <button className="organization-button" onClick={() => navigate('settings')}>
-          {me.organization}
-          <ChevronDown size={14} />
-        </button>
+        <span className="org-name">{me.organization}</span>
         <nav className="global-nav" aria-label="Основная навигация">
           {(
             [
               ['apps', 'Приложения'],
               ['activity', 'История'],
               ['team', 'Команда'],
+              ['settings', 'Настройки'],
             ] as const
           ).map(([id, label]) => (
             <button
               key={id}
               onClick={() => navigate(id)}
-              className={
-                (
-                  id === 'apps'
-                    ? ['apps', 'shared', 'favorites', 'archived'].includes(page)
-                    : page === id
-                )
-                  ? 'active'
-                  : ''
-              }
+              className={(id === 'apps' ? isApps : page === id) ? 'active' : ''}
             >
               {label}
             </button>
           ))}
         </nav>
         <div className="header-actions">
-          <button className="icon-button" onClick={() => setHelp(true)} aria-label="Помощь">
-            <HelpCircle size={19} />
-          </button>
-          <button
-            className={`icon-button ${page === 'settings' ? 'active' : ''}`}
-            onClick={() => navigate('settings')}
-            aria-label="Настройки"
-          >
-            <Settings size={19} />
+          <button className="text-button" onClick={() => setHelp(true)}>
+            Помощь
           </button>
           <span
             className="avatar"
@@ -278,8 +239,8 @@ function Root() {
           >
             {me.avatar}
           </span>
-          <button className="icon-button" onClick={() => void logout()} aria-label="Выйти">
-            <LogOut size={17} />
+          <button className="text-button" onClick={() => void logout()}>
+            Выйти
           </button>
         </div>
       </header>
@@ -300,108 +261,59 @@ function Root() {
           />
         ) : (
           <div className="page-content">
-            {['apps', 'shared', 'favorites', 'archived'].includes(page) ? (
+            {isApps ? (
               <>
-                <div className="page-heading">
-                  <div>
-                    <div className="workspace-context">
-                      <span className="status-dot" />
-                      {me.organization}
-                      <span className="context-separator">/</span>
-                      {me.mode === 'enterprise' ? me.region : 'Локальная версия'}
-                    </div>
-                    <h1>
-                      {titles[page]}
-                      <span className="heading-count">
-                        {page === 'archived'
-                          ? archived.length
-                          : page === 'favorites'
-                            ? favorites.length
-                            : page === 'shared'
-                              ? active.filter((a) => a.owner_id !== me.id).length
-                              : active.length}
-                      </span>
-                    </h1>
-                    <p>
-                      {page === 'archived'
-                        ? 'Архивные приложения можно восстановить с сохранением данных.'
-                        : 'Открывайте приложения, управляйте доступом и публикуйте обновления.'}
-                    </p>
-                  </div>
-                  <div className="heading-actions">
-                    <button
-                      className="button secondary"
-                      onClick={() => {
-                        setCreateTab('upload');
-                        setCreate(true);
-                      }}
-                    >
-                      <ArrowUpRight size={17} />
-                      Загрузить проект
-                    </button>
-                    <button
-                      className="button primary"
-                      onClick={() => {
-                        setCreateTab('template');
-                        setCreate(true);
-                      }}
-                    >
-                      <Plus size={17} />
-                      Создать приложение
-                    </button>
-                  </div>
-                </div>
-                <div className="collection-nav" role="navigation" aria-label="Разделы приложений">
-                  {nav.map(([id, Icon, label, count]) => (
-                    <button
-                      key={id}
-                      className={page === id ? 'active' : ''}
-                      onClick={() => navigate(id)}
-                    >
-                      <Icon size={16} />
-                      <span>{id === 'apps' ? 'Все приложения' : label}</span>
-                      {count !== null && <small>{count}</small>}
-                    </button>
-                  ))}
-                </div>
-                <div className="toolbar">
-                  <label className="owner-filter">
-                    <span>Владелец</span>
+                <PromptComposer
+                  me={me}
+                  onCreated={(id) => openCreated(id, 'Muse Spark собрал и опубликовал приложение')}
+                  onOther={(tab) => {
+                    setCreateTab(tab);
+                    setCreate(true);
+                  }}
+                />
+                <div className="section-bar">
+                  <nav className="tabs" aria-label="Разделы приложений">
+                    {sections.map(([id, label, count]) => (
+                      <button
+                        key={id}
+                        className={page === id ? 'active' : ''}
+                        onClick={() => navigate(id)}
+                      >
+                        {id === 'apps' ? 'Все приложения' : label}
+                        <small>{count}</small>
+                      </button>
+                    ))}
+                  </nav>
+                  <div className="toolbar">
+                    <input
+                      id="global-search"
+                      className="search"
+                      placeholder="Найти приложение…"
+                      aria-label="Поиск приложений"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
                     <select
                       aria-label="Фильтр приложений"
                       value={filter}
                       onChange={(e) => setFilter(e.target.value)}
                     >
-                      <option value="all">Все</option>
+                      <option value="all">Все владельцы</option>
                       <option value="mine">Только мои</option>
                       <option value="team">С общим доступом</option>
                     </select>
-                  </label>
-                  <div className="toolbar-right">
-                    <label className="search-box">
-                      <Search size={16} />
-                      <input
-                        id="global-search"
-                        placeholder="Найти приложение…"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                      />
-                      <kbd>⌘ K</kbd>
-                    </label>
-                    <div className="layout-switch">
+                    <div className="segmented">
                       <button
                         className={layout === 'grid' ? 'selected' : ''}
                         onClick={() => setLayout('grid')}
-                        aria-label="Показать карточками"
                       >
-                        <Grid2X2 size={16} />
+                        Сетка
                       </button>
                       <button
                         className={layout === 'list' ? 'selected' : ''}
                         onClick={() => setLayout('list')}
-                        aria-label="Показать списком"
                       >
-                        <List size={17} />
+                        Список
                       </button>
                     </div>
                   </div>
@@ -422,44 +334,27 @@ function Root() {
                 </div>
                 {!displayed.length && (
                   <Empty
-                    title={search ? 'Приложения не найдены' : 'Нет приложений'}
+                    title={search ? 'Приложения не найдены' : 'Здесь пока пусто'}
                     text={
                       search
                         ? 'Попробуйте другое название или сбросьте фильтр.'
-                        : 'Создайте приложение или выберите другой раздел.'
-                    }
-                    action={
-                      <button className="button secondary" onClick={() => setCreate(true)}>
-                        <Plus size={16} />
-                        Создать приложение
-                      </button>
+                        : 'Опишите приложение выше или выберите другой раздел.'
                     }
                   />
                 )}
-                {page === 'apps' && (
-                  <section className="workspace-tools">
-                    <div>
-                      <Terminal size={19} />
-                      <div>
-                        <h3>Публикация из вашего редактора</h3>
-                        <p>CLI и MCP для подключения AI-инструментов.</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setCreateTab('agent');
-                        setCreate(true);
-                      }}
-                    >
-                      <code>coship publish .</code>
-                      <ArrowUpRight size={17} />
-                    </button>
-                  </section>
-                )}
                 <footer className="page-footer">
-                  <span>CoShip / {me.organization}</span>
-                  <button onClick={() => setHelp(true)}>
-                    Документация <ArrowUpRight size={13} />
+                  <span>
+                    CoShip · {me.organization} ·{' '}
+                    {me.mode === 'enterprise' ? me.region : 'Локальная версия'}
+                  </span>
+                  <button
+                    className="text-button"
+                    onClick={() => {
+                      setCreateTab('agent');
+                      setCreate(true);
+                    }}
+                  >
+                    Публикация из редактора: <code>coship publish .</code>
                   </button>
                 </footer>
               </>
@@ -467,9 +362,9 @@ function Root() {
               <>
                 <PageHeading
                   title="История"
-                  text="Публикации и изменения доступа в рабочем пространстве."
+                  text="Публикации, запросы к Muse Spark и изменения доступа."
                 />
-                <div className="surface activity-full">
+                <div className="surface list-surface">
                   {activity.map((e) => (
                     <ActivityRow key={e.id} event={e} />
                   ))}
@@ -489,20 +384,17 @@ function Root() {
           </div>
         )}
       </main>
-      {notice && <Toast notice={notice} />}{' '}
+      {notice && <Toast notice={notice} />}
       {create && (
         <CreateModal
           initialTab={createTab}
           onClose={() => setCreate(false)}
           onCreated={async (id) => {
             setCreate(false);
-            const all = await refresh();
-            const app = all.find((a) => a.id === id);
-            if (app) open(app);
-            notify('Приложение опубликовано');
+            await openCreated(id, 'Приложение опубликовано');
           }}
         />
-      )}{' '}
+      )}
       {share && (
         <ShareModal
           app={share}
@@ -511,8 +403,8 @@ function Root() {
           notify={notify}
           onUpdated={refresh}
         />
-      )}{' '}
-      {help && <HelpModal onClose={() => setHelp(false)} notify={notify} />}{' '}
+      )}
+      {help && <HelpModal onClose={() => setHelp(false)} />}
       {confirm && (
         <Modal title={confirm.title} onClose={() => !busy && setConfirm(null)}>
           <p className="modal-copy">{confirm.text}</p>
@@ -535,11 +427,11 @@ function Root() {
                 }
               }}
             >
-              {busy ? <Loader2 size={16} className="spin" /> : <Check size={16} />}Подтвердить
+              {busy ? 'Выполняем…' : 'Подтвердить'}
             </button>
           </div>
         </Modal>
-      )}{' '}
+      )}
       {authorization && (
         <Authorize
           requestId={authorization}
@@ -574,26 +466,45 @@ function AppCard({
   const canManage = app.management_role === 'owner' || me.admin;
   return (
     <article className="app-card">
-      <div className="card-top">
-        <AppIcon icon={app.icon} color={app.color} />
-        <div className="card-actions">
+      <button className="card-main" onClick={onOpen}>
+        <AppMark name={app.name} color={app.color} />
+        <span>
+          <h3>{app.name}</h3>
+          <p>{app.description || 'Без описания'}</p>
+          <small>
+            {app.status === 'archived'
+              ? 'В архиве'
+              : app.status === 'archive_pending'
+                ? 'Ожидает архива'
+                : `Версия ${app.release_count}`}{' '}
+            · {relativeTime(app.updated_at)}
+          </small>
+        </span>
+      </button>
+      <div className="card-footer">
+        <span className="owner">
+          <span className="avatar small">{initials(app.owner_name)}</span>
+          {app.owner_name}
+        </span>
+        <span className="card-actions">
           <button
-            className={`icon-button favorite ${app.favorite ? 'is-favorite' : ''}`}
+            className={`chip ${app.favorite ? 'on' : ''}`}
             onClick={onFavorite}
+            aria-pressed={app.favorite}
             aria-label={
               app.favorite ? `Убрать ${app.name} из избранного` : `В избранное: ${app.name}`
             }
           >
-            <Star size={16} fill={app.favorite ? 'currentColor' : 'none'} />
+            {app.favorite ? 'В избранном' : 'В избранное'}
           </button>
-          <div className="menu-anchor">
+          <span className="menu-anchor">
             <button
-              className="icon-button"
+              className="chip"
               onClick={() => setMenu(!menu)}
               aria-label={`Действия: ${app.name}`}
               aria-expanded={menu}
             >
-              <MoreHorizontal size={19} />
+              Ещё
             </button>
             {menu && (
               <>
@@ -609,7 +520,6 @@ function AppCard({
                       onShare();
                     }}
                   >
-                    <Users size={14} />
                     Управление доступом
                   </button>
                   {app.management_role && (
@@ -619,7 +529,6 @@ function AppCard({
                         onCopy();
                       }}
                     >
-                      <Copy size={14} />
                       Сделать копию
                     </button>
                   )}
@@ -630,48 +539,13 @@ function AppCard({
                         onArchive();
                       }}
                     >
-                      <Archive size={14} />
                       {app.status === 'archived' ? 'Восстановить' : 'В архив'}
                     </button>
                   )}
                 </div>
               </>
             )}
-          </div>
-        </div>
-      </div>
-      <button className="card-main" onClick={onOpen}>
-        <h3>
-          {app.name}
-          <ArrowUpRight size={16} />
-        </h3>
-        <p>{app.description || 'Без описания'}</p>
-      </button>
-      <div className="card-tags">
-        <span className={`status-tag ${app.status === 'archived' ? 'archived' : ''}`}>
-          <i />
-          {app.status === 'archived'
-            ? 'В архиве'
-            : app.status === 'archive_pending'
-              ? 'Ожидает архива'
-              : 'Опубликовано'}
-        </span>
-        <span className="version-tag">v{app.release_count}</span>
-      </div>
-      <div className="card-footer">
-        <span className="owner">
-          <span className={`avatar mini ${app.color}`}>
-            {app.owner_name
-              .split(' ')
-              .map((p) => p[0])
-              .slice(0, 2)
-              .join('')}
           </span>
-          {app.owner_name}
-        </span>
-        <span>{relativeTime(app.updated_at)}</span>
-        <span className="card-lock" title="Закрытое приложение">
-          <Lock size={12} />
         </span>
       </div>
     </article>

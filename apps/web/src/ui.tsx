@@ -1,18 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  Layers,
-  BarChart3,
-  CheckSquare2,
-  CalendarDays,
-  Box,
-  Sparkles,
-  Users,
-  FileText,
-  X,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-} from 'lucide-react';
 import type { Actor } from '../../../packages/shared/src/index';
 import { relativeTime } from './api';
 export type Me = Actor & {
@@ -20,50 +6,44 @@ export type Me = Actor & {
   region: string;
   mode: string;
   runnerEnabled: boolean;
+  generationEnabled: boolean;
 };
 export type Notice = { message: string; kind: 'success' | 'error' };
 export type Notify = (message: string, kind?: Notice['kind']) => void;
-export const iconMap: Record<string, any> = {
-  layers: Layers,
-  chart: BarChart3,
-  check: CheckSquare2,
-  calendar: CalendarDays,
-  box: Box,
-  sparkles: Sparkles,
-  users: Users,
-  file: FileText,
-};
+export const initials = (name: string) =>
+  name
+    .split(' ')
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('');
 export function Logo() {
   return (
     <div className="brand">
       <img src="/favicon.svg" alt="" />
-      <span>
-        CoShip<span className="brand-dot">.</span>
-      </span>
+      <span>CoShip</span>
     </div>
   );
 }
-export function AppIcon({
-  icon,
+export function AppMark({
+  name,
   color,
   size = 'normal',
 }: {
-  icon: string;
+  name: string;
   color: string;
-  size?: string;
+  size?: 'normal' | 'large';
 }) {
-  const Icon = iconMap[icon] || Layers;
   return (
-    <span className={`app-icon ${color} ${size}`}>
-      <Icon size={size === 'large' ? 27 : 21} strokeWidth={1.7} />
+    <span className={`app-mark ${color} ${size}`} aria-hidden="true">
+      {name.trim()[0]?.toUpperCase() || '·'}
     </span>
   );
 }
-export function Spinner() {
+export function Spinner({ label = 'Загрузка…' }: { label?: string }) {
   return (
     <div className="loading">
-      <Loader2 className="spin" size={24} />
-      <span>Загрузка…</span>
+      <span className="spinner" />
+      <span>{label}</span>
     </div>
   );
 }
@@ -78,7 +58,6 @@ export function Empty({
 }) {
   return (
     <div className="empty-state">
-      <Layers size={30} />
       <h3>{title}</h3>
       <p>{text}</p>
       {action}
@@ -149,8 +128,8 @@ export function Modal({
             <h2>{title}</h2>
             {subtitle && <p>{subtitle}</p>}
           </div>
-          <button className="icon-button" onClick={onClose} aria-label="Закрыть">
-            <X size={20} />
+          <button className="text-button" onClick={onClose}>
+            Закрыть
           </button>
         </header>
         {children}
@@ -161,23 +140,21 @@ export function Modal({
 export function Toast({ notice }: { notice: Notice }) {
   return (
     <div className={`toast ${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
-      {notice.kind === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
-      <span>{notice.message}</span>
+      {notice.message}
     </div>
   );
 }
 export function PageHeading({ title, text }: { title: string; text: string }) {
   return (
     <div className="page-heading">
-      <div>
-        <h1>{title}</h1>
-        <p>{text}</p>
-      </div>
+      <h1>{title}</h1>
+      <p>{text}</p>
     </div>
   );
 }
 const actionLabels: Record<string, string> = {
   'app.published': 'опубликовал(а) приложение',
+  'app.generated': 'изменил(а) приложение через Muse Spark',
   'app.copied': 'создал(а) копию',
   'app.archived': 'отправил(а) в архив',
   'app.restored': 'восстановил(а) приложение',
@@ -198,14 +175,11 @@ const actionLabels: Record<string, string> = {
 export function ActivityRow({ event }: { event: any }) {
   return (
     <div className="activity-row">
-      <span className="avatar small">{event.avatar || 'CS'}</span>
-      <div>
-        <p>
-          <strong>{event.actor_name || 'CoShip'}</strong>{' '}
-          {actionLabels[event.action] || event.action}
-        </p>
-        <span>{event.app_name || 'Рабочее пространство'}</span>
-      </div>
+      <span className="avatar">{event.avatar || 'CS'}</span>
+      <p>
+        <strong>{event.actor_name || 'CoShip'}</strong> {actionLabels[event.action] || event.action}
+        <span className="muted"> · {event.app_name || 'Рабочее пространство'}</span>
+      </p>
       <time>{relativeTime(event.created_at)}</time>
     </div>
   );

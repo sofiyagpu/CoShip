@@ -15,6 +15,7 @@ import { AppError, fail } from './errors.js';
 import { dataOperation } from './broker.js';
 import { publishProject, rollback } from './publish.js';
 import { seed } from './seed.js';
+import { generatePacket } from './muse.js';
 import { disableUser, sweepLifecycle } from './lifecycle.js';
 import { encryptSecret, masterKey } from './secrets.js';
 import { sameSecret, registerFunctions } from './functions.js';
@@ -192,6 +193,57 @@ export async function createApp(config: Config, providedDb?: Database) {
       { packet: templatePacket(input.template, input.name), idempotency_key: randomUUID() },
       !!config.runnerUrl,
     );
+  });
+  const promptText = z.string().trim().min(3).max(2000);
+  // The prompt joins the app thread so collaborators see who asked for which version.
+  async function recordPrompt(actor: Actor, appId: string, releaseId: string, prompt: string) {
+    await db.transaction(async (tx) => {
+      await tx.query(
+        "INSERT INTO comments(id,app_id,author_id,release_id,body,kind) VALUES($1,$2,$3,$4,$5,'prompt')",
+        [randomUUID(), appId, actor.id, releaseId, prompt],
+      );
+      await audit(tx, actor, 'app.generated', appId, { release_id: releaseId });
+    });
+  }
+  server.post('/api/apps/generate', async (req) => {
+    const actor = await actorFor(req, db, config, true);
+    const { prompt } = z.object({ prompt: promptText }).parse(req.body);
+    const packet = await generatePacket(config, prompt);
+    const result = await publishProject(
+      db,
+      actor,
+      { packet, idempotency_key: randomUUID() },
+      !!config.runnerUrl,
+    );
+    if (result.status === 'active')
+      await recordPrompt(actor, result.app_id, result.release_id, prompt);
+    return result;
+  });
+  server.post('/api/apps/:id/generate', async (req) => {
+    const actor = await actorFor(req, db, config, true),
+      id = (req.params as any).id;
+    const input = z
+      .object({ prompt: promptText, expected_release_id: z.string().nullable() })
+      .parse(req.body);
+    const { app } = await requireAccess(db, actor, id, 'publish');
+    const current = (
+      await db.query('SELECT packet FROM releases WHERE id=$1', [app.active_release_id])
+    ).rows[0]?.packet;
+    if (!current) fail(409, 'NO_RELEASE', 'Нет опубликованной версии');
+    const packet = await generatePacket(config, input.prompt, current);
+    const result = await publishProject(
+      db,
+      actor,
+      {
+        packet,
+        app_id: id,
+        expected_release_id: input.expected_release_id,
+        idempotency_key: randomUUID(),
+      },
+      !!config.runnerUrl,
+    );
+    if (result.status === 'active') await recordPrompt(actor, id, result.release_id, input.prompt);
+    return result;
   });
   server.post('/api/deployments', async (req) => {
     const actor = await actorFor(req, db, config);

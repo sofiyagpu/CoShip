@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 test('create, use, discuss, share, copy and archive an application', async ({ page }) => {
   await page.goto('/');
   await page.getByRole('button', { name: /София Ким/ }).click();
-  await expect(page.getByRole('heading', { name: /^Приложения\s*\d*$/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Что создадим?' })).toBeVisible();
   await page.screenshot({ path: 'test-results/workspace-desktop.png', fullPage: true });
-  await page.getByRole('button', { name: 'Создать приложение', exact: true }).first().click();
+  await page.getByRole('button', { name: 'из шаблона', exact: true }).click();
   const name = `E2E Tracker ${Date.now()}`;
   await page.getByLabel('Название приложения', { exact: true }).fill(name);
   await page.getByRole('button', { name: 'Создать и опубликовать' }).click();
@@ -14,7 +14,6 @@ test('create, use, discuss, share, copy and archive an application', async ({ pa
   await frame.getByLabel('Новая запись').fill('Реальная запись');
   await frame.getByRole('button', { name: 'Добавить', exact: true }).click();
   await expect(frame.getByText('Реальная запись', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Комментарии', exact: true }).click();
   await page.getByLabel('Комментарий', { exact: true }).fill('Проверено в браузере');
   await page.getByRole('button', { name: 'Отправить', exact: true }).click();
   await expect(page.getByText('Проверено в браузере', { exact: true })).toBeVisible();
@@ -57,7 +56,7 @@ test('mobile dashboard remains navigable without horizontal overflow', async ({ 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/');
   await page.getByRole('button', { name: /София Ким/ }).click();
-  await expect(page.getByRole('heading', { name: /^Приложения\s*\d*$/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Что создадим?' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/workspace-mobile.png', fullPage: true });
 });

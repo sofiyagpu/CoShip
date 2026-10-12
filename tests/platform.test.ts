@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, describe, it, expect } from 'vitest';
+import { beforeAll, afterAll, describe, it, expect, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { createApp } from '../apps/server/src/app.js';
 import { templatePacket } from '../packages/shared/src/templates.js';
@@ -17,6 +17,9 @@ export const testConfig: Config = {
   databaseUrl: process.env.COSHIP_TEST_DATABASE_URL,
   orgName: 'Test Company',
   region: 'KZ',
+  museApiKey: 'test-key',
+  museBaseUrl: 'https://muse.test/v1',
+  museModel: 'muse-spark-1.3',
 };
 describe('CoShip platform security and lifecycle', () => {
   let server: FastifyInstance, db: Database, owner: string, anna: string, daniel: string;
@@ -436,6 +439,45 @@ describe('CoShip platform security and lifecycle', () => {
         )
       ).statusCode,
     ).toBe(403);
+  });
+  it('generates apps from prompts and lets builders, not viewers, change them together', async () => {
+    const replies = [templatePacket('tracker', 'Склад'), templatePacket('tracker', 'Склад v2')];
+    const calls: any[] = [];
+    vi.stubGlobal('fetch', async (url: string, init: any) => {
+      calls.push({ url, body: JSON.parse(init.body) });
+      const content = '```json\n' + JSON.stringify(replies[calls.length - 1]) + '\n```';
+      return new Response(JSON.stringify({ choices: [{ message: { content } }] }));
+    });
+    try {
+      const created = (
+        await request('POST', '/api/apps/generate', owner, { prompt: 'Учёт склада' })
+      ).json();
+      expect(created.status).toBe('active');
+      expect(calls[0].url).toBe('https://muse.test/v1/chat/completions');
+      expect(calls[0].body.model).toBe('muse-spark-1.3');
+      await grant(created.app_id, 'demo-anna', 'user', 'builder');
+      await grant(created.app_id, 'demo-daniel', 'user');
+      const denied = await request('POST', `/api/apps/${created.app_id}/generate`, daniel, {
+        prompt: 'Добавь поле',
+        expected_release_id: created.release_id,
+      });
+      expect(denied.statusCode).toBe(403);
+      const edited = (
+        await request('POST', `/api/apps/${created.app_id}/generate`, anna, {
+          prompt: 'Переименуй в Склад v2',
+          expected_release_id: created.release_id,
+        })
+      ).json();
+      expect(edited.status).toBe('active');
+      expect(calls[1].body.messages[1].content).toContain('Current app');
+      const thread = (await request('GET', `/api/apps/${created.app_id}/comments`, daniel)).json();
+      expect(thread.map((c: any) => [c.kind, c.name])).toEqual([
+        ['prompt', 'София Ким'],
+        ['prompt', 'Анна Ли'],
+      ]);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
   it('revokes disabled users and transfers ownership without transferring data permissions', async () => {
     const a = await create();

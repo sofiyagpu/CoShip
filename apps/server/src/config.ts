@@ -22,6 +22,9 @@ export interface Config {
   directoryToken?: string;
   runnerUrl?: string;
   runnerKey?: string;
+  museApiKey?: string;
+  museBaseUrl: string;
+  museModel: string;
 }
 export function configFromEnv(): Config {
   const mode = (process.env.COSHIP_MODE || 'development') as Config['mode'];
@@ -45,6 +48,9 @@ export function configFromEnv(): Config {
     directoryToken: process.env.COSHIP_DIRECTORY_TOKEN,
     runnerUrl: process.env.COSHIP_RUNNER_URL,
     runnerKey: process.env.COSHIP_RUNNER_KEY,
+    museApiKey: process.env.MUSE_API_KEY,
+    museBaseUrl: (process.env.MUSE_BASE_URL || 'https://api.meta.ai/v1').replace(/\/$/, ''),
+    museModel: process.env.MUSE_MODEL || 'muse-spark-1.3',
   };
   if (config.runnerUrl || config.runnerKey) {
     if (!config.runnerUrl || !config.runnerKey || config.runnerKey.length < 32)

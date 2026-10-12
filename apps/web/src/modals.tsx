@@ -1,22 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import {
-  ArrowRight,
-  ArrowUpRight,
-  Building2,
-  Lock,
-  ShieldCheck,
-  Loader2,
-  CheckCircle2,
-  Terminal,
-  Upload,
-  Copy,
-  Users,
-  Trash2,
-  KeyRound,
-} from 'lucide-react';
 import { api, post } from './api';
 import { WelcomeMotion } from './welcome-motion';
-import { Logo, AppIcon, Modal, type Me, type Notify } from './ui';
+import { Logo, AppMark, Modal, initials, type Me, type Notify } from './ui';
 import type { Actor, AppView } from '../../../packages/shared/src/index';
 
 export function Login({ onLogin }: { onLogin: () => void }) {
@@ -55,7 +40,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
           {config?.mode === 'enterprise' ? config.organization : 'Локальная версия'}
         </span>
         <a className="button secondary" href="#welcome-access">
-          Войти <ArrowUpRight size={15} />
+          Войти
         </a>
       </header>
       <main>
@@ -86,7 +71,6 @@ export function Login({ onLogin }: { onLogin: () => void }) {
               aria-labelledby="welcome-access-title"
             >
               <div className="welcome-access-heading">
-                <Building2 size={18} />
                 <h2 id="welcome-access-title">{config?.organization || 'Рабочее пространство'}</h2>
                 <span>{config?.mode === 'enterprise' ? 'Корпоративный вход' : 'Демо'}</span>
               </div>
@@ -94,9 +78,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
                 <div className="welcome-enterprise">
                   <p>Войдите с аккаунтом вашей компании.</p>
                   <a className="button primary full" href="/api/auth/oidc">
-                    <Lock size={16} />
                     Войти через корпоративный аккаунт
-                    <ArrowRight size={17} />
                   </a>
                 </div>
               ) : (
@@ -112,11 +94,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
                           <strong>{u.name}</strong>
                           <small>{u.admin ? 'Администратор' : 'Участник команды'}</small>
                         </span>
-                        {busy === u.id ? (
-                          <Loader2 className="spin" size={17} />
-                        ) : (
-                          <ArrowUpRight size={17} />
-                        )}
+                        {busy === u.id && <span className="spinner" />}
                       </button>
                     ))}
                   </div>
@@ -124,7 +102,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
               )}
               {!config && !error && (
                 <div className="welcome-loading">
-                  <Loader2 className="spin" size={16} />
+                  <span className="spinner" />
                   Загрузка…
                 </div>
               )}
@@ -134,7 +112,6 @@ export function Login({ onLogin }: { onLogin: () => void }) {
                 </div>
               )}
               <div className="welcome-access-note">
-                <Lock size={12} />
                 <span>
                   {config?.mode === 'enterprise'
                     ? 'Доступ только для участников компании'
@@ -143,7 +120,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
               </div>
             </section>
             <a className="welcome-scroll" href="#welcome-how">
-              Как работает CoShip <ArrowRight size={15} />
+              Как работает CoShip
             </a>
           </div>
         </section>
@@ -151,7 +128,10 @@ export function Login({ onLogin }: { onLogin: () => void }) {
           <div>
             <span className="welcome-step">01 / ПУБЛИКАЦИЯ</span>
             <h2>Из вашего редактора</h2>
-            <p>Загрузите проект или опубликуйте его через CLI и MCP.</p>
+            <p>
+              Опишите приложение словами — Muse Spark соберёт его. Или опубликуйте проект через CLI
+              и MCP.
+            </p>
             <code>coship publish .</code>
           </div>
           <div>
@@ -217,7 +197,7 @@ export function CreateModal({
   return (
     <Modal
       title="Новое приложение"
-      subtitle="Выберите шаблон, загрузите проект или подключите агент."
+      subtitle="Шаблон, готовый пакет или публикация из вашего AI-инструмента."
       onClose={() => !busy && onClose()}
       wide
     >
@@ -244,10 +224,9 @@ export function CreateModal({
                   setName(item.name);
                 }}
               >
-                <AppIcon icon={item.icon} color={item.color} />
+                <AppMark name={item.name} color={item.color} />
                 <strong>{item.name}</strong>
                 <p>{item.description}</p>
-                {selected === item.id && <CheckCircle2 size={17} className="template-check" />}
               </button>
             ))}
           </div>
@@ -260,14 +239,11 @@ export function CreateModal({
               placeholder="Например, план запуска"
             />
           </label>
-          <div className="info-line">
-            <Lock size={14} /> Сначала приложение будет доступно только вам.
-          </div>
+          <p className="hint">Сначала приложение будет доступно только вам.</p>
         </>
       ) : tab === 'upload' ? (
         <>
           <label className="upload-box">
-            <Upload size={28} />
             <strong>{packet ? packet.manifest?.name : 'Выберите пакет приложения'}</strong>
             <span>JSON-пакет из команды coship pack · до 2 МБ</span>
             <input
@@ -286,14 +262,13 @@ export function CreateModal({
               }}
             />
           </label>
-          <p className="muted small-text">
+          <p className="hint">
             Пакет содержит манифест и файлы проекта. Перед публикацией CoShip проверит код, секреты
             и политику данных.
           </p>
         </>
       ) : (
         <div className="agent-instructions">
-          <Terminal size={30} />
           <h3>Публикация через CLI или MCP</h3>
           <p>Подключите CLI или MCP и попросите агента опубликовать проект.</p>
           <pre>
@@ -303,7 +278,7 @@ export function CreateModal({
             <br />
             coship publish my-app
           </pre>
-          <p className="small-text muted">
+          <p className="hint">
             В репозитории: <code>npm run cli -- …</code>. MCP:{' '}
             <code>coship mcp serve --root /путь/к/проекту</code>.
           </p>
@@ -324,7 +299,6 @@ export function CreateModal({
             onClick={() => void create()}
             disabled={busy || (tab === 'template' ? !name.trim() : !packet)}
           >
-            {busy ? <Loader2 className="spin" size={16} /> : <ArrowUpRight size={16} />}{' '}
             {busy ? 'Проверяем и публикуем…' : 'Создать и опубликовать'}
           </button>
         )}
@@ -452,7 +426,6 @@ export function ShareModal({
         </div>
       )}
       <div className="access-notice">
-        <ShieldCheck size={18} />
         <p>
           Получатели увидят <strong>все данные этого приложения</strong>. Доступ к внешним
           корпоративным источникам отдельно не выдаётся.
@@ -461,13 +434,7 @@ export function ShareModal({
       <h4>У кого есть доступ</h4>
       <div className="grant-list">
         <div className="grant-row">
-          <span className="avatar">
-            {app.owner_name
-              .split(' ')
-              .map((p) => p[0])
-              .slice(0, 2)
-              .join('')}
-          </span>
+          <span className="avatar">{initials(app.owner_name)}</span>
           <div>
             <strong>{app.owner_name}</strong>
             <small>Владелец приложения</small>
@@ -477,7 +444,7 @@ export function ShareModal({
         {grants.map((g) => (
           <div className="grant-row" key={`${g.subject_type}:${g.subject_id}`}>
             <span className="avatar">
-              {g.subject_type === 'group' ? <Users size={15} /> : g.avatar || 'У'}
+              {g.subject_type === 'group' ? initials(g.name) : g.avatar || 'У'}
             </span>
             <div>
               <strong>{g.name}</strong>
@@ -508,11 +475,11 @@ export function ShareModal({
                   <option value="none">Без данных</option>
                 </select>
                 <button
-                  className="icon-button"
+                  className="text-button danger-text"
                   onClick={() => void remove(g)}
                   aria-label={`Отозвать доступ: ${g.name}`}
                 >
-                  <Trash2 size={15} />
+                  Убрать
                 </button>
               </>
             ) : (
@@ -523,13 +490,7 @@ export function ShareModal({
           </div>
         ))}
       </div>
-      <div className="link-access">
-        <Lock size={18} />
-        <div>
-          <strong>Доступ ограничен</strong>
-          <p>Ссылка работает только для выбранных сотрудников.</p>
-        </div>
-      </div>
+      <p className="hint">Доступ ограничен: ссылка работает только для выбранных сотрудников.</p>
       <div className="modal-actions">
         <button
           className="button secondary"
@@ -542,7 +503,6 @@ export function ShareModal({
             }
           }}
         >
-          <Copy size={15} />
           Копировать ссылку
         </button>
         <button className="button primary" onClick={onClose}>
@@ -552,7 +512,7 @@ export function ShareModal({
     </Modal>
   );
 }
-export function HelpModal({ onClose, notify }: { onClose: () => void; notify: Notify }) {
+export function HelpModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal
       title="Любой агент. Одна команда."
@@ -563,8 +523,11 @@ export function HelpModal({ onClose, notify }: { onClose: () => void; notify: No
         <div>
           <span>1</span>
           <section>
-            <h3>Создайте приложение</h3>
-            <p>Попросите AI собрать HTML-интерфейс с SDK CoShip. Или начните с готового шаблона.</p>
+            <h3>Опишите приложение</h3>
+            <p>
+              Напишите запрос на главной — Muse Spark соберёт и опубликует приложение. Или
+              подготовьте проект в своём AI-инструменте.
+            </p>
           </section>
         </div>
         <div>
@@ -581,13 +544,15 @@ export function HelpModal({ onClose, notify }: { onClose: () => void; notify: No
         <div>
           <span>3</span>
           <section>
-            <h3>Поделитесь с командой</h3>
-            <p>Выберите сотрудников и права. Вход и доступ к данным уже встроены.</p>
+            <h3>Дорабатывайте вместе</h3>
+            <p>
+              Поделитесь с коллегами. Участники обсуждают приложение рядом с ним, а те, кому
+              разрешена публикация, превращают пожелания в новую версию одним запросом.
+            </p>
           </section>
         </div>
       </div>
       <div className="access-notice">
-        <Terminal size={20} />
         <p>
           MCP: <code>npm run mcp -- --root /путь/к/проекту</code>. Добавьте эту команду как
           локальный stdio-сервер в своём агенте.
@@ -595,7 +560,7 @@ export function HelpModal({ onClose, notify }: { onClose: () => void; notify: No
       </div>
       <div className="modal-actions">
         <a className="button secondary" href="/api/docs/sdk" target="_blank" rel="noreferrer">
-          Контракт SDK <ArrowUpRight size={14} />
+          Контракт SDK
         </a>
         <button className="button primary" onClick={onClose}>
           Понятно
@@ -623,13 +588,12 @@ export function Authorize({
       }}
     >
       <div className="access-notice">
-        <KeyRound size={22} />
         <p>
           CLI сможет публиковать и скачивать код доступных вам приложений. Он не получит доступ к
           рабочим записям или секретам.
         </p>
       </div>
-      <p className="muted small-text">
+      <p className="hint">
         Запрос: <code>{requestId}</code>
       </p>
       <div className="modal-actions">
@@ -660,5 +624,90 @@ export function Authorize({
         </button>
       </div>
     </Modal>
+  );
+}
+
+export function PromptComposer({
+  me,
+  onCreated,
+  onOther,
+}: {
+  me: Me;
+  onCreated: (id: string) => Promise<void>;
+  onOther: (tab: 'template' | 'upload' | 'agent') => void;
+}) {
+  const [prompt, setPrompt] = useState(''),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError('');
+    try {
+      const result = await post('/apps/generate', { prompt });
+      if (result.status !== 'active')
+        throw new Error(result.error?.message || 'Публикация не завершена');
+      setPrompt('');
+      await onCreated(result.app_id);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="composer">
+      <h1>Что создадим?</h1>
+      <p className="lead">
+        Опишите приложение — Muse Spark напишет его, CoShip опубликует. Дальше дорабатывайте вместе
+        с командой.
+      </p>
+      <form className="composer-box" onSubmit={submit}>
+        <textarea
+          aria-label="Описание приложения"
+          placeholder="Например: учёт заявок на закупку — сумма, статус, ответственный и комментарий"
+          maxLength={2000}
+          value={prompt}
+          disabled={busy || !me.generationEnabled}
+          onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey))
+              e.currentTarget.form?.requestSubmit();
+          }}
+        />
+        <div className="composer-foot">
+          <span className="hint">
+            {!me.generationEnabled
+              ? 'Генерация выключена: администратор должен задать MUSE_API_KEY.'
+              : busy
+                ? 'Muse Spark собирает приложение. Обычно это занимает до минуты…'
+                : 'Ctrl / ⌘ + Enter — отправить'}
+          </span>
+          <button
+            className="button primary"
+            disabled={busy || !me.generationEnabled || prompt.trim().length < 3}
+          >
+            {busy ? 'Собираем…' : 'Создать'}
+          </button>
+        </div>
+      </form>
+      {error && (
+        <div className="error-box" role="alert">
+          {error}
+        </div>
+      )}
+      <p className="composer-alt">
+        Или начните иначе:
+        <button className="text-button" onClick={() => onOther('template')}>
+          из шаблона
+        </button>
+        <button className="text-button" onClick={() => onOther('upload')}>
+          загрузить пакет
+        </button>
+        <button className="text-button" onClick={() => onOther('agent')}>
+          CLI и MCP
+        </button>
+      </p>
+    </section>
   );
 }

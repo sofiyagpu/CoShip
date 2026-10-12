@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pause, Play } from 'lucide-react';
 import 'lenis/dist/lenis.css';
 
 type Effect = { destroy: () => void };
@@ -135,7 +134,6 @@ export function WelcomeMotion() {
           aria-label={paused ? 'Включить анимацию фона' : 'Приостановить анимацию фона'}
           onClick={() => setPaused((value) => !value)}
         >
-          {paused ? <Play size={12} /> : <Pause size={12} />}
           <span>{paused ? 'Включить анимацию' : 'Пауза'}</span>
         </button>
       )}

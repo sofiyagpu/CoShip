@@ -77,6 +77,7 @@ export async function migrate(db: Database) {
     CREATE TABLE IF NOT EXISTS collections (app_id text NOT NULL REFERENCES apps, name text NOT NULL, schema jsonb NOT NULL, PRIMARY KEY(app_id,name));
     CREATE TABLE IF NOT EXISTS records (id uuid PRIMARY KEY, org_id text NOT NULL, app_id text NOT NULL, collection text NOT NULL, payload jsonb NOT NULL, revision integer NOT NULL DEFAULT 1, created_by text NOT NULL REFERENCES users, idempotency_key uuid, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), FOREIGN KEY(org_id,app_id) REFERENCES apps(org_id,id), FOREIGN KEY(app_id,collection) REFERENCES collections(app_id,name), UNIQUE(app_id,collection,created_by,idempotency_key));
     CREATE TABLE IF NOT EXISTS comments (id text PRIMARY KEY, app_id text NOT NULL REFERENCES apps, author_id text NOT NULL REFERENCES users, release_id text, body text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+    ALTER TABLE comments ADD COLUMN IF NOT EXISTS kind text NOT NULL DEFAULT 'comment';
     CREATE TABLE IF NOT EXISTS audit_events (id text PRIMARY KEY, org_id text NOT NULL, actor_id text, app_id text, action text NOT NULL, metadata jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now());
     CREATE TABLE IF NOT EXISTS secrets (id text PRIMARY KEY, org_id text NOT NULL REFERENCES organizations, name text NOT NULL, encrypted text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(org_id,name));
     CREATE INDEX IF NOT EXISTS records_collection ON records(app_id,collection,id);

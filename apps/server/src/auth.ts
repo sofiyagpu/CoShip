@@ -129,6 +129,7 @@ export function registerAuth(server: FastifyInstance, db: Database, config: Conf
       organization: config.orgName,
       region: config.region,
       runnerEnabled: !!config.runnerUrl,
+      generationEnabled: !!config.museApiKey,
     };
   });
   server.post('/api/auth/cli/request', async () => {

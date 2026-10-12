@@ -1,30 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import {
-  ArrowLeft,
-  Users,
-  Copy,
-  Archive,
-  Play,
-  History,
-  MessageSquare,
-  Settings,
-  Lock,
-  Loader2,
-  Send,
-  Download,
-  RotateCcw,
-  Database,
-  ShieldCheck,
-  KeyRound,
-  Plus,
-  Trash2,
-  Check,
-  Globe,
-  Terminal,
-} from 'lucide-react';
 import type { AppView } from '../../../packages/shared/src/index';
 import { api, post, formatDate } from './api';
-import { AppIcon, Empty, PageHeading, type Me, type Notify } from './ui';
+import { AppMark, Empty, PageHeading, Spinner, initials, type Me, type Notify } from './ui';
 
 export function AppDetail({
   app,
@@ -56,6 +33,8 @@ export function AppDetail({
     [comments, setComments] = useState<any[]>([]),
     [comment, setComment] = useState(''),
     [busy, setBusy] = useState(false),
+    [generating, setGenerating] = useState(false),
+    [mode, setMode] = useState<'comment' | 'prompt'>('comment'),
     [name, setName] = useState(app.name),
     [description, setDescription] = useState(app.description),
     [people, setPeople] = useState<any[]>([]),
@@ -99,6 +78,17 @@ export function AppDetail({
       .then((p) => setPeople(p.users))
       .catch(() => {});
   }, [app.id, app.active_release_id]);
+  const refreshRef = useRef(onRefresh);
+  refreshRef.current = onRefresh;
+  // ponytail: 15s polling keeps collaborators in sync; switch to SSE if load grows.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.hidden) return;
+      void loadDetails().catch(() => {});
+      void refreshRef.current().catch(() => {});
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [app.id, app.active_release_id, app.data_role, app.status]);
   useLayoutEffect(() => {
     if (!launch || tab !== 'app') return;
     const current = ++generation.current;
@@ -165,8 +155,7 @@ export function AppDetail({
       channel.current = null;
     };
   }, [launch, app.id, tab]);
-  async function addComment(e: React.FormEvent) {
-    e.preventDefault();
+  async function addComment() {
     setBusy(true);
     try {
       await post(`/apps/${app.id}/comments`, { body: comment });
@@ -193,197 +182,259 @@ export function AppDetail({
       notify(e.message, 'error');
     }
   }
+  const canBuild = !!app.management_role && me.generationEnabled && app.status !== 'archived';
+  const versionOf = (releaseId: string) => releases.find((r) => r.id === releaseId)?.version;
+  async function generate(prompt: string) {
+    setGenerating(true);
+    try {
+      const result = await post(`/apps/${app.id}/generate`, {
+        prompt,
+        expected_release_id: app.active_release_id,
+      });
+      if (result.status !== 'active')
+        throw new Error(result.error?.message || 'Публикация не завершена');
+      setComment('');
+      await onRefresh();
+      await loadDetails();
+      notify('Muse Spark опубликовал новую версию');
+    } catch (e: any) {
+      notify(e.message, 'error');
+    } finally {
+      setGenerating(false);
+    }
+  }
   return (
     <div className="detail-page">
-      <button className="back-button" onClick={onBack}>
-        <ArrowLeft size={16} />
+      <button className="back-link" onClick={onBack}>
         Все приложения
       </button>
       <div className="detail-heading">
-        <AppIcon icon={app.icon} color={app.color} size="large" />
+        <AppMark name={app.name} color={app.color} size="large" />
         <div>
           <h1>{app.name}</h1>
-          <p>{app.description}</p>
+          <p className="meta">
+            {app.owner_name} · версия {releases[0]?.version ?? app.release_count} ·{' '}
+            {app.record_count} записей · доступ ограничен
+          </p>
         </div>
         <div className="detail-actions">
           {app.management_role && (
             <button className="button secondary" onClick={onCopy}>
-              <Copy size={15} />
               Копия
             </button>
           )}
           <button className="button primary" onClick={onShare}>
-            <Users size={16} />
             Поделиться
           </button>
         </div>
       </div>
-      <div className="detail-meta">
-        <span>
-          <Lock size={12} />
-          Доступ ограничен
-        </span>
-        <span>Владелец: {app.owner_name}</span>
-        <span>{app.collections.length} коллекций</span>
-        <span>{app.record_count} записей</span>
-      </div>
-      <div className="detail-tabs">
+      <nav className="tabs" aria-label="Разделы приложения">
         {(
           [
-            ['app', Play, 'Приложение'],
-            ['versions', History, 'Версии'],
-            ['comments', MessageSquare, 'Комментарии'],
-            ['settings', Settings, 'Настройки'],
+            ['app', 'Приложение'],
+            ['versions', 'Версии'],
+            ['settings', 'Настройки'],
           ] as const
-        ).map(([id, Icon, label]) => (
+        ).map(([id, label]) => (
           <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
-            <Icon size={15} />
             {label}
-            {id === 'comments' && comments.length > 0 && <small>{comments.length}</small>}
+            {id === 'versions' && <small>{releases.length}</small>}
           </button>
         ))}
-      </div>
+      </nav>
       {tab === 'app' ? (
-        <div className="app-frame-wrap">
-          {app.status === 'archived' ? (
-            <Empty
-              title="Приложение в архиве"
-              text="Код и данные сохранены. Восстановите приложение, чтобы продолжить."
-              action={
-                (app.management_role === 'owner' || me.admin) && (
-                  <button className="button primary" onClick={onArchive}>
-                    Восстановить
+        <div className="studio">
+          <div className="app-frame-wrap">
+            {app.status === 'archived' ? (
+              <Empty
+                title="Приложение в архиве"
+                text="Код и данные сохранены. Восстановите приложение, чтобы продолжить."
+                action={
+                  (app.management_role === 'owner' || me.admin) && (
+                    <button className="button primary" onClick={onArchive}>
+                      Восстановить
+                    </button>
+                  )
+                }
+              />
+            ) : !app.data_role ? (
+              <Empty
+                title="Нет доступа к данным"
+                text="Право управления приложением не даёт автоматического доступа к его данным."
+                action={
+                  <button className="button secondary" onClick={onShare}>
+                    Посмотреть права
                   </button>
-                )
-              }
-            />
-          ) : !app.data_role ? (
-            <Empty
-              title="Нет доступа к данным"
-              text="Право управления приложением не даёт автоматического доступа к его данным."
-              action={
-                <button className="button secondary" onClick={onShare}>
-                  Посмотреть права
-                </button>
-              }
-            />
-          ) : error ? (
-            <div className="error-box" role="alert">
-              {error}
-            </div>
-          ) : launch ? (
-            <iframe
-              ref={frame}
-              title={app.name}
-              srcDoc={launch.html}
-              sandbox="allow-scripts allow-forms"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div className="loading">
-              <Loader2 className="spin" size={22} />
-            </div>
-          )}
+                }
+              />
+            ) : error ? (
+              <div className="error-box" role="alert">
+                {error}
+              </div>
+            ) : launch ? (
+              <iframe
+                ref={frame}
+                title={app.name}
+                srcDoc={launch.html}
+                sandbox="allow-scripts allow-forms"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <Spinner />
+            )}
+          </div>
+          <aside className="surface thread" aria-label="Совместная работа">
+            <header>
+              <h3>Совместная работа</h3>
+              <p className="hint">
+                {canBuild
+                  ? 'Обсуждайте и меняйте приложение запросом к Muse Spark.'
+                  : 'Обсуждение команды. Изменения публикуют владелец и участники с правом публикации.'}
+              </p>
+            </header>
+            {!app.data_role || app.status === 'archived' ? (
+              <p className="hint">Для обсуждения нужен доступ к действующему приложению.</p>
+            ) : (
+              <>
+                <div className="thread-list">
+                  {comments.map((c) => (
+                    <div className={`message ${c.kind}`} key={c.id}>
+                      <span className="avatar">{c.avatar}</span>
+                      <div>
+                        <div className="message-meta">
+                          <strong>{c.name}</strong>
+                          {c.kind === 'prompt' && (
+                            <span className="tag">
+                              Muse Spark
+                              {versionOf(c.release_id) ? ` · v${versionOf(c.release_id)}` : ''}
+                            </span>
+                          )}
+                          <time>{formatDate(c.created_at)}</time>
+                        </div>
+                        <p>{c.body}</p>
+                        {canBuild && c.kind !== 'prompt' && (
+                          <button
+                            className="text-button"
+                            disabled={generating}
+                            onClick={() => void generate(c.body)}
+                          >
+                            Воплотить через Muse Spark
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {!comments.length && !generating && (
+                    <p className="hint">
+                      Пока тихо. Предложите улучшение — его увидят все участники.
+                    </p>
+                  )}
+                  {generating && (
+                    <div className="message pending">
+                      <span className="spinner" />
+                      <p>Muse Spark собирает новую версию…</p>
+                    </div>
+                  )}
+                </div>
+                <form
+                  className="thread-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (mode === 'prompt') void generate(comment);
+                    else void addComment();
+                  }}
+                >
+                  {canBuild && (
+                    <div className="segmented">
+                      <button
+                        type="button"
+                        className={mode === 'comment' ? 'selected' : ''}
+                        onClick={() => setMode('comment')}
+                      >
+                        Комментарий
+                      </button>
+                      <button
+                        type="button"
+                        className={mode === 'prompt' ? 'selected' : ''}
+                        onClick={() => setMode('prompt')}
+                      >
+                        Изменить через AI
+                      </button>
+                    </div>
+                  )}
+                  <textarea
+                    aria-label={mode === 'prompt' ? 'Запрос к Muse Spark' : 'Комментарий'}
+                    placeholder={
+                      mode === 'prompt'
+                        ? 'Например: добавь фильтр по статусу и поле «срок»'
+                        : 'Что можно улучшить?'
+                    }
+                    maxLength={2000}
+                    value={comment}
+                    disabled={generating}
+                    onChange={(e) => setComment(e.target.value)}
+                  />
+                  <button
+                    className="button primary"
+                    disabled={
+                      busy || generating || comment.trim().length < (mode === 'prompt' ? 3 : 1)
+                    }
+                  >
+                    {mode === 'prompt' ? 'Изменить' : 'Отправить'}
+                  </button>
+                </form>
+              </>
+            )}
+          </aside>
         </div>
       ) : tab === 'versions' ? (
-        <div className="surface detail-surface">
+        <div className="surface list-surface">
           <div className="section-title">
             <div>
               <h3>История публикаций</h3>
-              <p className="muted small-text">
-                Откат меняет код. Данные и права доступа сохраняются.
-              </p>
+              <p className="hint">Откат меняет код. Данные и права доступа сохраняются.</p>
             </div>
             {app.management_role && (
               <button className="button secondary" onClick={() => void source()}>
-                <Download size={14} />
                 Скачать код
               </button>
             )}
           </div>
-          {releases.map((r) => (
-            <div className="release-row" key={r.id}>
-              <span className="release-icon">
-                <History size={18} />
-              </span>
-              <div>
-                <strong>
-                  Версия {r.version}{' '}
-                  {r.id === app.active_release_id && (
-                    <span className="status-tag">
-                      <i />
-                      Текущая
-                    </span>
-                  )}
-                </strong>
-                <p>
-                  {r.author} · {formatDate(r.created_at)}
-                </p>
-                <code>sha256:{r.digest.slice(0, 20)}…</code>
+          {releases.map((r) => {
+            const prompt = comments.find((c) => c.kind === 'prompt' && c.release_id === r.id);
+            return (
+              <div className="release-row" key={r.id}>
+                <span className="version">v{r.version}</span>
+                <div>
+                  <strong>
+                    {r.author} · {formatDate(r.created_at)}
+                    {r.id === app.active_release_id && <span className="tag">Текущая</span>}
+                  </strong>
+                  {prompt && <p>«{prompt.body}»</p>}
+                  <code>sha256:{r.digest.slice(0, 20)}…</code>
+                </div>
+                {r.id !== app.active_release_id && app.management_role && (
+                  <button
+                    className="button secondary"
+                    onClick={async () => {
+                      try {
+                        await post(`/apps/${app.id}/rollback`, {
+                          release_id: r.id,
+                          expected_release_id: app.active_release_id,
+                        });
+                        await onRefresh();
+                        notify('Версия восстановлена');
+                      } catch (e: any) {
+                        notify(e.message, 'error');
+                      }
+                    }}
+                  >
+                    Восстановить
+                  </button>
+                )}
               </div>
-              {r.id !== app.active_release_id && app.management_role && (
-                <button
-                  className="button secondary"
-                  onClick={async () => {
-                    try {
-                      await post(`/apps/${app.id}/rollback`, {
-                        release_id: r.id,
-                        expected_release_id: app.active_release_id,
-                      });
-                      await onRefresh();
-                      notify('Версия восстановлена');
-                    } catch (e: any) {
-                      notify(e.message, 'error');
-                    }
-                  }}
-                >
-                  <RotateCcw size={14} />
-                  Восстановить
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      ) : tab === 'comments' ? (
-        <div className="surface detail-surface comments-surface">
-          {!app.data_role || app.status === 'archived' ? (
-            <Empty
-              title="Обсуждение недоступно"
-              text="Для комментариев нужен доступ к действующему приложению."
-            />
-          ) : (
-            <>
-              <h3>Обсуждение команды</h3>
-              <p className="muted small-text">Обсуждение приложения и изменений.</p>
-              {comments.length ? (
-                comments.map((c) => (
-                  <div className="comment" key={c.id}>
-                    <span className="avatar">{c.avatar}</span>
-                    <div>
-                      <strong>{c.name}</strong>
-                      <time>{formatDate(c.created_at)}</time>
-                      <p>{c.body}</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <Empty title="Начните разговор" text="Добавьте комментарий к приложению." />
-              )}
-              <form className="comment-form" onSubmit={addComment}>
-                <textarea
-                  aria-label="Комментарий"
-                  placeholder="Что можно улучшить?"
-                  maxLength={2000}
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                />
-                <button className="button primary" disabled={!comment.trim() || busy}>
-                  <Send size={15} />
-                  Отправить
-                </button>
-              </form>
-            </>
-          )}
+            );
+          })}
         </div>
       ) : (
         <div className="settings-grid">
@@ -511,7 +562,6 @@ export function AppDetail({
                 </button>
                 <div className="danger-section">
                   <button className="button danger" onClick={onArchive}>
-                    <Archive size={15} />
                     {app.status === 'archived' ? 'Восстановить приложение' : 'Отправить в архив'}
                   </button>
                   <p>Архивирование не удаляет данные.</p>
@@ -550,9 +600,7 @@ export function Team({
       <div className="team-summary">
         {people.groups.map((g: any) => (
           <div className="surface group-card" key={g.id}>
-            <span className="app-icon green">
-              <Users size={20} />
-            </span>
+            <span className="avatar">{initials(g.name)}</span>
             <div>
               <strong>{g.name}</strong>
               <p>{g.members} участников</p>
@@ -566,7 +614,6 @@ export function Team({
             Участники <span className="muted">{people.users.length}</span>
           </h3>
           <span className="pill">
-            <ShieldCheck size={13} />
             {me.mode === 'enterprise' ? 'Корпоративный каталог' : 'Демонстрационная команда'}
           </span>
         </div>
@@ -661,8 +708,7 @@ export function Team({
           </table>
         </div>
       </section>
-      <p className="info-line">
-        <Lock size={14} />
+      <p className="hint">
         Состав групп обновляется через корпоративный каталог. Публичных приглашений нет.
       </p>
     </>
@@ -715,7 +761,6 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
           <section className="surface settings-card">
             <div className="section-title">
               <h3>Контур компании</h3>
-              <ShieldCheck size={19} />
             </div>
             <dl className="settings-list">
               <div>
@@ -736,10 +781,7 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
               </div>
               <div>
                 <dt>Публичные ссылки</dt>
-                <dd>
-                  <Lock size={12} />
-                  Отключены
-                </dd>
+                <dd>Отключены</dd>
               </div>
               <div>
                 <dt>Серверные функции</dt>
@@ -757,7 +799,6 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
               </div>
             </dl>
             <div className="access-notice">
-              <Database size={19} />
               <p>
                 Данные приложений, доступы и секреты управляются платформой. Приложения не получают
                 ключи базы.
@@ -774,14 +815,12 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
                 }
               }}
             >
-              <Archive size={15} />
               Проверить неиспользуемые приложения
             </button>
           </section>
           <section className="surface settings-card">
             <div className="section-title">
               <h3>Хранилище секретов</h3>
-              <KeyRound size={19} />
             </div>
             <p className="muted">
               Значения шифруются и никогда не возвращаются через API. Использование коннекторами
@@ -810,17 +849,16 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
                 />
               </label>
               <button className="button primary" disabled={busy || !name || !value}>
-                {busy ? <Loader2 size={15} className="spin" /> : <Plus size={15} />}Сохранить секрет
+                {busy ? 'Сохраняем…' : 'Сохранить секрет'}
               </button>
             </form>
             <div className="secret-list">
               {secrets.map((s) => (
                 <div key={s.id}>
-                  <KeyRound size={15} />
                   <code>{s.name}</code>
                   <span>••••••••</span>
                   <button
-                    className="icon-button"
+                    className="text-button danger-text"
                     aria-label={`Удалить секрет ${s.name}`}
                     onClick={async () => {
                       try {
@@ -832,7 +870,7 @@ export function SettingsPage({ me, notify }: { me: Me; notify: Notify }) {
                       }
                     }}
                   >
-                    <Trash2 size={15} />
+                    Удалить
                   </button>
                 </div>
               ))}
