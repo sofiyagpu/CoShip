@@ -26,6 +26,7 @@ import {
   Toast,
   PageHeading,
   ActivityRow,
+  ThemeToggle,
   initials,
   type Me,
   type Notice,
@@ -273,6 +274,7 @@ function Root() {
             <kbd>⌘K</kbd>
           </label>
           <div className="header-actions">
+            <ThemeToggle />
             <button className="icon-button" onClick={() => setHelp(true)} aria-label="Помощь">
               <QuestionIcon size={18} />
             </button>

@@ -13,7 +13,16 @@ import {
 } from '@primer/octicons-react';
 import type { AppView } from '../../../packages/shared/src/index';
 import { api, post, formatDate } from './api';
-import { AppMark, Empty, PageHeading, Spinner, initials, type Me, type Notify } from './ui';
+import {
+  AppMark,
+  Empty,
+  PageHeading,
+  Spinner,
+  initials,
+  useTheme,
+  type Me,
+  type Notify,
+} from './ui';
 
 export function AppDetail({
   app,
@@ -52,6 +61,7 @@ export function AppDetail({
     [people, setPeople] = useState<any[]>([]),
     [owner, setOwner] = useState(app.owner_id),
     [backup, setBackup] = useState((app as any).backup_owner_id || '');
+  const theme = useTheme();
   const frame = useRef<HTMLIFrameElement>(null),
     channel = useRef<MessagePort | null>(null),
     generation = useRef(0);
@@ -166,7 +176,7 @@ export function AppDetail({
       channel.current?.close();
       channel.current = null;
     };
-  }, [launch, app.id, tab]);
+  }, [launch, app.id, tab, theme]);
   async function addComment() {
     setBusy(true);
     try {
@@ -291,7 +301,7 @@ export function AppDetail({
               <iframe
                 ref={frame}
                 title={app.name}
-                srcDoc={launch.html}
+                srcDoc={launch.html.replace(/<html\b/i, `<html data-theme="${theme}"`)}
                 sandbox="allow-scripts allow-forms"
                 referrerPolicy="no-referrer"
               />

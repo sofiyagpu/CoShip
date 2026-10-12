@@ -2,15 +2,27 @@ import React, { useEffect, useState } from 'react';
 import {
   ArrowRightIcon,
   ArrowUpIcon,
+  CodeIcon,
+  CommentIcon,
+  CopyIcon,
+  DatabaseIcon,
+  GitBranchIcon,
+  HistoryIcon,
   LinkIcon,
+  LockIcon,
+  PeopleIcon,
   RepoTemplateIcon,
+  RocketIcon,
+  ShieldCheckIcon,
+  SparkleFillIcon,
   TerminalIcon,
   TrashIcon,
   UploadIcon,
+  ZapIcon,
 } from '@primer/octicons-react';
 import { api, post } from './api';
 import { WelcomeMotion } from './welcome-motion';
-import { Logo, AppMark, Modal, initials, type Me, type Notify } from './ui';
+import { Logo, AppMark, Modal, ThemeToggle, initials, type Me, type Notify } from './ui';
 import type { Actor, AppView } from '../../../packages/shared/src/index';
 
 export function Login({ onLogin }: { onLogin: () => void }) {
@@ -42,111 +54,178 @@ export function Login({ onLogin }: { onLogin: () => void }) {
       <header className="welcome-header">
         <Logo />
         <nav aria-label="О платформе">
-          <a href="#welcome-how">Как работает CoShip</a>
-          <a href="#welcome-access">Вход в пространство</a>
+          <a href="#welcome-how">Как это работает</a>
+          <a href="#welcome-features">Возможности</a>
+          <a href="#welcome-access">Вход</a>
         </nav>
-        <span className="welcome-mode">
-          {config?.mode === 'enterprise' ? config.organization : 'Локальная версия'}
-        </span>
-        <a className="button secondary" href="#welcome-access">
-          Войти
-        </a>
+        <div className="welcome-actions">
+          <ThemeToggle />
+          <a className="button primary" href="#welcome-access">
+            Войти
+            <ArrowRightIcon size={16} />
+          </a>
+        </div>
       </header>
       <main>
         <section className="welcome-hero" aria-labelledby="welcome-title">
-          <div className="welcome-scene" aria-hidden="true">
-            <div className="scene-plane scene-left" />
-            <div className="scene-plane scene-right" />
-            <div className="scene-horizon" />
-          </div>
           <WelcomeMotion />
           <div className="welcome-content">
-            <div className="welcome-eyebrow">
-              <span />
-              CoShip / Workspace
+            <div className="welcome-mark">
+              <img src="/favicon.svg" alt="" />
+              CoShip
             </div>
-            <h1 id="welcome-title">Внутренние приложения по описанию</h1>
-            <p className="welcome-description">
-              Опишите идею — Muse Spark соберёт приложение, а команда доработает его вместе.
-            </p>
-            <section
-              id="welcome-access"
-              className="welcome-access"
-              aria-labelledby="welcome-access-title"
-            >
-              <div className="welcome-access-heading">
-                <h2 id="welcome-access-title">{config?.organization || 'Рабочее пространство'}</h2>
-                <span>{config?.mode === 'enterprise' ? 'Корпоративный вход' : 'Демо'}</span>
-              </div>
-              {config?.mode === 'enterprise' ? (
-                <div className="welcome-enterprise">
-                  <p>Войдите с аккаунтом вашей компании.</p>
-                  <a className="button primary full" href="/api/auth/oidc">
-                    Войти через корпоративный аккаунт
-                  </a>
-                </div>
-              ) : (
-                <>
-                  <div className="welcome-accounts">
-                    {users.map((u) => (
-                      <button key={u.id} onClick={() => void login(u.id)} disabled={!!busy}>
-                        <span className="avatar">{u.avatar}</span>
-                        <span>
-                          <strong>{u.name}</strong>
-                          <small>{u.admin ? 'Администратор' : 'Участник команды'}</small>
-                        </span>
-                        {busy === u.id ? (
-                          <span className="spinner" />
-                        ) : (
-                          <ArrowRightIcon size={16} />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-              {!config && !error && (
-                <div className="welcome-loading">
-                  <span className="spinner" />
-                  Загрузка…
-                </div>
-              )}
-              {error && (
-                <div className="error-box" role="alert">
-                  {error}
-                </div>
-              )}
-            </section>
-            <a className="welcome-scroll" href="#welcome-how">
-              Как работает CoShip
+            <h1 id="welcome-title">Внутренние приложения по одному описанию</h1>
+            <a className="button primary large" href="#welcome-access">
+              Начать
             </a>
           </div>
         </section>
-        <section className="welcome-how" id="welcome-how" aria-label="Возможности CoShip">
-          <div>
-            <span className="welcome-step">01</span>
-            <h2>Опишите</h2>
-            <p>Muse Spark соберёт приложение. Или опубликуйте проект через CLI и MCP.</p>
-            <code>coship publish .</code>
+        <section className="welcome-preview" aria-label="Как выглядит CoShip">
+          <div className="preview-card">
+            <div className="preview-composer">
+              <span className="preview-typing">Учёт заявок на закупку: сумма, статус, ответственный</span>
+              <span className="send-button" aria-hidden="true">
+                <ArrowUpIcon size={18} />
+              </span>
+            </div>
+            <div className="preview-apps">
+              {[
+                ['Заявки на закупку', 'green', 'v3 · Анна Ли'],
+                ['Онбординг команды', 'blue', 'v1 · Максим Орлов'],
+                ['Банк идей', 'violet', 'v2 · София Ким'],
+              ].map(([name, color, meta]) => (
+                <div className="preview-app" key={name}>
+                  <AppMark name={name} color={color} />
+                  <div>
+                    <strong>{name}</strong>
+                    <small>{meta}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <div>
-            <span className="welcome-step">02</span>
-            <h2>Поделитесь</h2>
-            <p>Выберите сотрудников и группы — права определяют доступ к данным.</p>
+        </section>
+        <section className="welcome-statement" id="welcome-how">
+          <div className="icon-arc" aria-hidden="true">
+            {arcIcons.map((Icon, i) => (
+              <span key={i} style={{ '--i': i - (arcIcons.length - 1) / 2 } as React.CSSProperties}>
+                <Icon size={22} />
+              </span>
+            ))}
           </div>
-          <div>
-            <span className="welcome-step">03</span>
-            <h2>Дорабатывайте вместе</h2>
-            <p>Обсуждение, версии и правки через AI — в одном месте.</p>
+          <p>
+            CoShip — платформа, где любой сотрудник собирает внутренние приложения словами, а
+            команда дорабатывает их вместе
+            <span className="caret" />
+          </p>
+        </section>
+        <section className="welcome-features" id="welcome-features">
+          {features.map(([title, text, rows]) => (
+            <div className="feature" key={title as string}>
+              <div>
+                <h2>{title}</h2>
+                <p>{text}</p>
+              </div>
+              <div className="feature-visual" aria-hidden="true">
+                <div className="feature-window">
+                  {(rows as string[]).map((row, i) => (
+                    <div className="feature-row" key={row}>
+                      <span className="avatar small">{['СК', 'АЛ', 'МО'][i % 3]}</span>
+                      {row}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+        <section
+          id="welcome-access"
+          className="welcome-access-section"
+          aria-labelledby="welcome-access-title"
+        >
+          <h2>Войдите в пространство</h2>
+          <div className="welcome-access">
+            <div className="welcome-access-heading">
+              <h3 id="welcome-access-title">{config?.organization || 'Рабочее пространство'}</h3>
+              <span>{config?.mode === 'enterprise' ? 'Корпоративный вход' : 'Демо'}</span>
+            </div>
+            {config?.mode === 'enterprise' ? (
+              <a className="button primary full" href="/api/auth/oidc">
+                Войти через корпоративный аккаунт
+              </a>
+            ) : (
+              <div className="welcome-accounts">
+                {users.map((u) => (
+                  <button key={u.id} onClick={() => void login(u.id)} disabled={!!busy}>
+                    <span className="avatar">{u.avatar}</span>
+                    <span>
+                      <strong>{u.name}</strong>
+                      <small>{u.admin ? 'Администратор' : 'Участник команды'}</small>
+                    </span>
+                    {busy === u.id ? <span className="spinner" /> : <ArrowRightIcon size={16} />}
+                  </button>
+                ))}
+              </div>
+            )}
+            {!config && !error && (
+              <div className="welcome-loading">
+                <span className="spinner" />
+                Загрузка…
+              </div>
+            )}
+            {error && (
+              <div className="error-box" role="alert">
+                {error}
+              </div>
+            )}
           </div>
         </section>
       </main>
       <footer className="welcome-footer">
         <Logo />
+        <nav>
+          <a href="#welcome-how">Как это работает</a>
+          <a href="#welcome-features">Возможности</a>
+          <a href="/api/docs/sdk">Контракт SDK</a>
+        </nav>
       </footer>
     </div>
   );
 }
+
+const arcIcons = [
+  TerminalIcon,
+  CodeIcon,
+  GitBranchIcon,
+  SparkleFillIcon,
+  CommentIcon,
+  CopyIcon,
+  ZapIcon,
+  DatabaseIcon,
+  PeopleIcon,
+  LockIcon,
+  HistoryIcon,
+  ShieldCheckIcon,
+  RocketIcon,
+];
+const features = [
+  [
+    'Опишите — и готово',
+    'Muse Spark собирает интерфейс и базу данных по одной фразе. CoShip проверяет код и публикует приложение.',
+    ['Учёт заявок с суммой и статусом', 'Добавь фильтр по отделу', 'Опубликована версия 3'],
+  ],
+  [
+    'Дорабатывайте вместе',
+    'Коллеги обсуждают приложение рядом с ним. Любой комментарий превращается в новую версию одним нажатием.',
+    ['Хорошо бы добавить срок', 'Воплотить через AI', 'Готово: поле «срок» добавлено'],
+  ],
+  [
+    'Доступ как у документа',
+    'Делитесь с людьми и группами. Права на данные, версии и откат — без настройки серверов.',
+    ['Продажи · просмотр', 'Анна Ли · изменение', 'Ссылка только для команды'],
+  ],
+];
 
 export function CreateModal({
   initialTab = 'template',

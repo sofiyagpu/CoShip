@@ -1,5 +1,11 @@
-import React, { useEffect, useRef } from 'react';
-import { AlertFillIcon, CheckCircleFillIcon, XIcon } from '@primer/octicons-react';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  AlertFillIcon,
+  CheckCircleFillIcon,
+  MoonIcon,
+  SunIcon,
+  XIcon,
+} from '@primer/octicons-react';
 import type { Actor } from '../../../packages/shared/src/index';
 import { relativeTime } from './api';
 export type Me = Actor & {
@@ -183,5 +189,45 @@ export function ActivityRow({ event }: { event: any }) {
       </p>
       <time>{relativeTime(event.created_at)}</time>
     </div>
+  );
+}
+
+export type Theme = 'light' | 'dark';
+const darkMedia = window.matchMedia('(prefers-color-scheme: dark)');
+const currentTheme = (): Theme =>
+  (document.documentElement.dataset.theme as Theme) || (darkMedia.matches ? 'dark' : 'light');
+/** Explicit choice lives in localStorage; without one the OS preference wins. */
+export function useTheme() {
+  const [theme, setTheme] = useState<Theme>(currentTheme);
+  useEffect(() => {
+    const sync = () => setTheme(currentTheme());
+    darkMedia.addEventListener('change', sync);
+    window.addEventListener('coship:theme', sync);
+    return () => {
+      darkMedia.removeEventListener('change', sync);
+      window.removeEventListener('coship:theme', sync);
+    };
+  }, []);
+  return theme;
+}
+export function ThemeToggle() {
+  const theme = useTheme();
+  return (
+    <button
+      className="icon-button"
+      aria-label={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+      onClick={() => {
+        const next = theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        try {
+          localStorage.setItem('coship-theme', next);
+        } catch {
+          /* The choice still applies to this page. */
+        }
+        window.dispatchEvent(new Event('coship:theme'));
+      }}
+    >
+      {theme === 'dark' ? <SunIcon size={18} /> : <MoonIcon size={18} />}
+    </button>
   );
 }
