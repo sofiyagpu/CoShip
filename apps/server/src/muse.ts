@@ -16,7 +16,7 @@ export async function generatePacket(
   current?: ProjectPacket,
 ): Promise<ProjectPacket> {
   if (!config.museApiKey)
-    fail(503, 'GENERATION_DISABLED', 'Генерация не настроена: нужен MUSE_API_KEY');
+    fail(503, 'GENERATION_DISABLED', 'Встроенный редактор не настроен: нужен MUSE_API_KEY');
   const user = current
     ? `Current app:\n${JSON.stringify(current)}\n\nChange it: ${prompt}\nKeep every existing collection and field; you may only add optional fields or new collections. Return the full updated JSON.`
     : `Create an app: ${prompt}`;
@@ -35,9 +35,9 @@ export async function generatePacket(
       signal: AbortSignal.timeout(180_000),
     });
   } catch {
-    fail(502, 'GENERATION_UNAVAILABLE', 'Muse Spark не ответил. Повторите позже');
+    fail(502, 'GENERATION_UNAVAILABLE', 'Редактор не ответил. Повторите позже');
   }
-  if (!response.ok) fail(502, 'GENERATION_FAILED', `Muse Spark вернул ошибку ${response.status}`);
+  if (!response.ok) fail(502, 'GENERATION_FAILED', `Редактор вернул ошибку ${response.status}`);
   const text: string = (await response.json()).choices?.[0]?.message?.content ?? '';
   return parsePacket(text);
 }

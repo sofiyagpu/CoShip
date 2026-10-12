@@ -1592,16 +1592,35 @@ td select {
     opacity 0.9s ease,
     transform 0.9s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.motion-ok .preview-card[data-reveal] {
-  transform: translateY(40px) scale(0.94);
-}
 .motion-ok [data-reveal].revealed {
   opacity: 1;
   transform: none;
 }
 .motion-ok .icon-arc[data-reveal] {
   opacity: 1;
-  transform: none;
+  transform: translateX(calc((0.5 - var(--p, 0.5)) * 220px));
+  transition: none;
+}
+.motion-ok .welcome-hero .welcome-content {
+  transform: translateY(calc(var(--p, 0) * -140px)) scale(calc(1 - var(--p, 0) * 0.08));
+  opacity: calc(1 - var(--p, 0) * 1.5);
+}
+.motion-ok .welcome-hero .welcome-particles {
+  transform: scale(calc(1 + var(--p, 0) * 0.25));
+  opacity: calc(1 - var(--p, 0) * 1.2);
+}
+.motion-ok .preview-card[data-scroll] {
+  transform: scale(calc(0.84 + 0.16 * var(--p, 0)));
+  border-radius: calc(72px - 36px * var(--p, 0));
+}
+.motion-ok .preview-card:not(.revealed) .preview-typing {
+  animation-play-state: paused;
+}
+.motion-ok [data-scroll='words'] .word {
+  opacity: clamp(0.14, calc(var(--p, 0) * var(--n) - var(--w)), 1);
+}
+.motion-ok .feature-visual[data-scroll] {
+  transform: translateY(calc((0.5 - var(--p, 0.5)) * 90px));
 }
 .motion-ok .icon-arc span {
   opacity: 0;

@@ -31,20 +31,49 @@ export function WelcomeMotion() {
       { threshold: 0.2 },
     );
     root.querySelectorAll('[data-reveal]').forEach((el) => reveal.observe(el));
+    // Scroll-linked effects read a --p progress (0..1) that each [data-scroll] element gets.
+    const parts = [...root.querySelectorAll<HTMLElement>('[data-scroll]')];
+    const clamp = (v: number) => Math.min(1, Math.max(0, v));
+    const update = () => {
+      const vh = innerHeight;
+      for (const el of parts) {
+        const r = el.getBoundingClientRect();
+        const kind = el.dataset.scroll;
+        const p =
+          kind === 'hero'
+            ? clamp(-r.top / r.height)
+            : kind === 'words'
+              ? clamp((vh * 0.85 - r.top) / (vh * 0.55))
+              : kind === 'grow'
+                ? clamp((vh - r.top) / (vh * 0.8))
+                : clamp((vh - r.top) / (vh + r.height));
+        el.style.setProperty('--p', p.toFixed(3));
+      }
+    };
+    update();
     let disposed = false;
     let cleanup = () => {};
+    window.addEventListener('resize', update);
     void import('lenis')
       .then(({ default: Lenis }) => {
         if (disposed) return;
-        const scrolling = new Lenis({ autoRaf: true, anchors: true, duration: 0.85 });
+        const scrolling = new Lenis({
+          autoRaf: true,
+          anchors: true,
+          lerp: 0.08,
+          smoothWheel: true,
+        });
+        scrolling.on('scroll', update);
         cleanup = () => scrolling.destroy();
       })
       .catch(() => {
-        /* Native scrolling remains available. */
+        window.addEventListener('scroll', update, { passive: true });
+        cleanup = () => window.removeEventListener('scroll', update);
       });
     return () => {
       disposed = true;
       cleanup();
+      window.removeEventListener('resize', update);
       reveal.disconnect();
       root.classList.remove('motion-ok');
     };
@@ -103,18 +132,27 @@ export function WelcomeMotion() {
       }
       center.x += (target.x - center.x) * 0.045;
       center.y += (target.y - center.y) * 0.045;
-      // Intro: the ring bursts out of the centre over the first 1.8 s.
+      // Intro: the field bursts out of the centre over the first 1.8 s.
       const intro = 1 - (1 - Math.min(t / 1.8, 1)) ** 3;
-      const radius = intro * (Math.min(w, h) * 0.34 + Math.sin(t * 0.9) * 22);
-      const width = 52 + 20 * Math.sin(t * 0.55 + 1) + (1 - intro) * 60;
+      const base = intro * Math.max(w, h) * 0.36;
       const light = dark ? 66 : 54;
       ctx.clearRect(0, 0, w, h);
       ctx.lineCap = 'round';
       for (const d of dots) {
         const dx = d.x - center.x,
           dy = d.y - center.y,
-          dist = Math.hypot(dx, dy) || 1;
-        const ring = Math.exp(-(((dist - radius) / width) ** 2));
+          dist = Math.hypot(dx, dy * 1.2) || 1,
+          angle = Math.atan2(dy, dx);
+        // An oval that wobbles unevenly, thick on one side and thin on the other.
+        const radius =
+          base *
+          (1 +
+            0.16 * Math.sin(2 * angle + t * 0.35) +
+            0.09 * Math.sin(3 * angle - t * 0.27 + 1.3) +
+            0.05 * Math.sin(5 * angle + t * 0.6));
+        const width = 50 + 38 * Math.sin(2 * angle - t * 0.4 + 2) + 30 + (1 - intro) * 60;
+        let ring = Math.exp(-(((dist - radius) / width) ** 2));
+        if (dist < radius && d.seed > 5.4) ring = Math.max(ring, 0.28);
         if (ring < 0.08) continue;
         const ux = dx / dist,
           uy = dy / dist;
@@ -122,7 +160,7 @@ export function WelcomeMotion() {
         const x = d.x + ux * push,
           y = d.y + uy * push,
           half = (1 + ring * 4) / 2;
-        const hue = 212 + 22 * Math.sin(Math.atan2(dy, dx) * 2 + t * 0.5) + 10 * Math.sin(d.seed);
+        const hue = 212 + 22 * Math.sin(angle * 2 + t * 0.5) + 10 * Math.sin(d.seed);
         ctx.globalAlpha = Math.min(0.9, ring * 1.2);
         ctx.lineWidth = 1.5 + ring;
         ctx.strokeStyle = `hsl(${hue} 92% ${light}%)`;

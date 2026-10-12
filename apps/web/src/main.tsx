@@ -307,9 +307,7 @@ function Root() {
                 <>
                   <PromptComposer
                     me={me}
-                    onCreated={(id) =>
-                      openCreated(id, 'Muse Spark собрал и опубликовал приложение')
-                    }
+                    onCreated={(id) => openCreated(id, 'Приложение собрано и опубликовано')}
                     onOther={(tab) => {
                       setCreateTab(tab);
                       setCreate(true);

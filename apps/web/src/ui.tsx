@@ -161,7 +161,7 @@ export function PageHeading({ title }: { title: string }) {
 }
 const actionLabels: Record<string, string> = {
   'app.published': 'опубликовал(а) приложение',
-  'app.generated': 'изменил(а) приложение через Muse Spark',
+  'app.generated': 'изменил(а) приложение во встроенном редакторе',
   'app.copied': 'создал(а) копию',
   'app.archived': 'отправил(а) в архив',
   'app.restored': 'восстановил(а) приложение',

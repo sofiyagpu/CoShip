@@ -67,7 +67,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
         </div>
       </header>
       <main>
-        <section className="welcome-hero" aria-labelledby="welcome-title">
+        <section className="welcome-hero" aria-labelledby="welcome-title" data-scroll="hero">
           <WelcomeMotion />
           <div className="welcome-content">
             <div className="welcome-mark">
@@ -85,7 +85,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
           </div>
         </section>
         <section className="welcome-preview" aria-label="Как выглядит CoShip">
-          <div className="preview-card" data-reveal>
+          <div className="preview-card" data-scroll="grow" data-reveal>
             <div className="preview-composer">
               <span className="preview-typing">
                 Учёт заявок на закупку: сумма, статус, ответственный
@@ -98,7 +98,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
               {[
                 ['Заявки на закупку', 'green', 'v3 · из Claude Code'],
                 ['Онбординг команды', 'blue', 'v1 · из Cursor'],
-                ['Банк идей', 'violet', 'v2 · Muse Spark'],
+                ['Банк идей', 'violet', 'v2 · из редактора'],
               ].map(([name, color, meta]) => (
                 <div className="preview-app" key={name}>
                   <AppMark name={name} color={color} />
@@ -112,7 +112,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
           </div>
         </section>
         <section className="welcome-statement" id="welcome-how">
-          <div className="icon-arc" aria-hidden="true" data-reveal>
+          <div className="icon-arc" aria-hidden="true" data-reveal data-scroll>
             {arcIcons.map((Icon, i) => (
               <span
                 key={i}
@@ -122,9 +122,12 @@ export function Login({ onLogin }: { onLogin: () => void }) {
               </span>
             ))}
           </div>
-          <p data-reveal>
-            Без привязки к инструменту. Пишите код в Claude Code, Cursor, Codex или опишите задачу
-            Muse Spark — CoShip опубликует, выдаст доступ и сохранит данные
+          <p data-scroll="words" style={{ '--n': statement.length } as React.CSSProperties}>
+            {statement.map((word, i) => (
+              <span key={i} className="word" style={{ '--w': i } as React.CSSProperties}>
+                {word}{' '}
+              </span>
+            ))}
             <span className="caret" />
           </p>
         </section>
@@ -135,7 +138,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
                 <h2>{title}</h2>
                 <p>{text}</p>
               </div>
-              <div className="feature-visual" aria-hidden="true">
+              <div className="feature-visual" aria-hidden="true" data-scroll>
                 <div className="feature-window">
                   {(rows as string[]).map((row) => (
                     <div className="feature-row" key={row}>
@@ -217,7 +220,11 @@ const arcIcons = [
   ShieldCheckIcon,
   RocketIcon,
 ];
-const headline = 'Внутренние приложения из любого AI-агента';
+const headline = 'Google Docs для внутренних приложений';
+const statement =
+  'Без привязки к инструменту. Пишите в Claude Code, Cursor, Codex или во встроенном редакторе — CoShip опубликует, выдаст доступ и сохранит данные'.split(
+    ' ',
+  );
 const features = [
   [
     'Любой агент',
@@ -226,8 +233,8 @@ const features = [
   ],
   [
     'Или просто опишите',
-    'Muse Spark собирает приложение прямо в CoShip.',
-    ['Учёт заявок: сумма и статус', 'Muse Spark собирает…', 'Опубликовано · v1'],
+    'Встроенный редактор соберёт приложение прямо в CoShip.',
+    ['Учёт заявок: сумма и статус', 'Редактор собирает…', 'Опубликовано · v1'],
   ],
   [
     'Вместе с командой',
@@ -588,7 +595,7 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
           <span>1</span>
           <section>
             <h3>Опишите приложение</h3>
-            <p>Muse Spark соберёт и опубликует приложение.</p>
+            <p>Встроенный редактор соберёт и опубликует приложение.</p>
           </section>
         </div>
         <div>
@@ -744,7 +751,7 @@ export function PromptComposer({
             <TerminalIcon size={14} />
             CLI
           </button>
-          {busy && <span className="hint composer-status">Muse Spark собирает приложение…</span>}
+          {busy && <span className="hint composer-status">Редактор собирает приложение…</span>}
           <button
             className="send-button"
             aria-label="Создать"

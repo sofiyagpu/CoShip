@@ -218,7 +218,7 @@ export function AppDetail({
       setComment('');
       await onRefresh();
       await loadDetails();
-      notify('Muse Spark опубликовал новую версию');
+      notify('Новая версия опубликована');
     } catch (e: any) {
       notify(e.message, 'error');
     } finally {
@@ -384,7 +384,7 @@ export function AppDetail({
                     </div>
                   )}
                   <textarea
-                    aria-label={mode === 'prompt' ? 'Запрос к Muse Spark' : 'Комментарий'}
+                    aria-label={mode === 'prompt' ? 'Запрос к редактору' : 'Комментарий'}
                     placeholder={
                       mode === 'prompt'
                         ? 'Например: добавь фильтр по статусу и поле «срок»'

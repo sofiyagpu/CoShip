@@ -1,7 +1,7 @@
 {
   "name": "CoShip",
   "short_name": "CoShip",
-  "description": "Внутренние приложения из любого AI-агента",
+  "description": "Google Docs для внутренних приложений",
   "lang": "ru",
   "start_url": "/",
   "scope": "/",
