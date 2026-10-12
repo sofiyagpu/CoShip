@@ -1,103 +1,54 @@
+<div align="center">
+
+<img src="apps/web/public/icons/icon-192.png" width="88" alt="CoShip" />
+
 # CoShip
 
-**Google Docs для внутренних приложений.**
+**Google Docs для внутренних приложений**
 
-Нет привязки к инструменту: публикуйте из Claude Code, Cursor, Codex или любого MCP-клиента, либо опишите приложение во встроенном редакторе. CoShip берёт на себя доступ, данные, версии и совместную работу. Интерфейс на русском.
+Создавайте приложения в любом AI-агенте или во встроенном редакторе.
+Делитесь ими с командой, как документом.
 
-## Запуск на компьютере
+<a href="https://github.com/sofiyagpu/CoShip">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github-readme-stats.vercel.app/api/pin/?username=sofiyagpu&repo=CoShip&hide_border=true&bg_color=0d1117&title_color=5ab4ff&icon_color=14b4ee&text_color=c9d1d9" />
+    <img alt="CoShip" src="https://github-readme-stats.vercel.app/api/pin/?username=sofiyagpu&repo=CoShip&hide_border=true&title_color=3b5bf6&icon_color=14b4ee" />
+  </picture>
+</a>
+<a href="https://github.com/sofiyagpu">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://github-readme-stats.vercel.app/api/top-langs/?username=sofiyagpu&layout=compact&hide_border=true&bg_color=0d1117&title_color=5ab4ff&text_color=c9d1d9" />
+    <img alt="Языки" src="https://github-readme-stats.vercel.app/api/top-langs/?username=sofiyagpu&layout=compact&hide_border=true&title_color=3b5bf6" />
+  </picture>
+</a>
 
-Нужен Node.js 22.16+ и npm. Из корня этого репозитория:
+</div>
+
+## Почему CoShip
+
+- **Любой агент.** Claude Code, Cursor, Codex или любой MCP-клиент — публикация одной командой. Сменили инструмент — приложения остались.
+- **Встроенный редактор.** Опишите приложение словами — CoShip соберёт и опубликует его.
+- **Вместе с командой.** Обсуждение рядом с приложением, комментарий превращается в новую версию.
+- **Доступ как у документа.** Люди, группы, права на данные, версии и откат.
+
+## Запуск
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Откройте **http://127.0.0.1:5173**. Вход в локальном режиме — через одну из четырёх явно обозначенных демо-учётных записей. Создайте приложение из шаблона, добавьте запись, нажмите «Поделиться» и войдите другим сотрудником, чтобы проверить доступ. Данные сохраняются между перезапусками в `.coship/data`; используется встроенный PostgreSQL — PGlite. Docker и корпоративные аккаунты для этого сценария не нужны.
+Откройте http://127.0.0.1:5173.
 
-Локальный режим слушает только loopback. Для корпоративной установки есть отдельный режим `enterprise`, без демо-входа, с PostgreSQL и OIDC: [инструкция размещения](docs/deployment.md).
-
-## Создание приложения по описанию
-
-На главной странице опишите приложение словами: встроенный редактор соберёт пакет (под капотом Muse Spark через Meta Model API), CoShip проверит и опубликует его. На странице приложения справа есть панель «Совместная работа». Участники оставляют там комментарии. Владелец и участники с правом публикации меняют приложение запросом к AI или одной кнопкой превращают комментарий коллеги в новую версию. Каждый запрос виден в обсуждении и в истории версий. Панель обновляется каждые 15 секунд.
+## Публикация из агента
 
 ```sh
-MUSE_API_KEY=...            # ключ Meta Model API
-MUSE_MODEL=muse-spark-1.3   # по умолчанию
-MUSE_BASE_URL=https://api.meta.ai/v1
+npm run cli -- login
+npm run cli -- publish ./my-app
 ```
 
-В модель уходят только текст запроса и исходный код приложения, записи из базы не передаются. Без ключа поле запроса отключено.
+MCP-сервер: `npm run mcp -- --root /путь/к/проекту`.
 
-## Публикация из любого агента
+## Документация
 
-```sh
-npm run cli -- login --server http://127.0.0.1:4300
-npm run cli -- init ../my-coship-app --name "Задачи отдела"
-npm run cli -- inspect ../my-coship-app
-npm run cli -- publish ../my-coship-app
-```
-
-CLI откроет браузер для подтверждения входа. Токен хранится в системном хранилище macOS Keychain или Linux Secret Service; в CI можно передать `COSHIP_TOKEN`. Повторный `publish` обновляет то же приложение, используя привязку `.coship/project.json`. Конфликт версий требует явно получить актуальный код, чтобы не затереть чужие изменения.
-
-В интерфейс можно загрузить JSON-пакет, подготовленный командой `pack`:
-
-```sh
-npm run cli -- pack ../my-coship-app --output ../my-coship-app.json
-```
-
-MCP работает через stdio с любым совместимым клиентом. После `npm run build` пример конфигурации клиента:
-
-```json
-{
-  "mcpServers": {
-    "coship": {
-      "command": "node",
-      "args": [
-        "/absolute/path/CoShip/dist/packages/cli/src/index.js",
-        "mcp",
-        "serve",
-        "--root",
-        "/absolute/path/my-coship-app"
-      ],
-      "env": { "COSHIP_SERVER": "http://127.0.0.1:4300" }
-    }
-  }
-}
-```
-
-Инструменты: `coship_capabilities`, `coship_inspect`, `coship_publish`, `coship_deployment_status`, `coship_rollback`. Ресурс `coship://sdk` и `/.well-known/coship.json` описывают контракт. Агент получает право публикации, но не API чтения корпоративных записей и изменения шеринга. [Контракт приложения](docs/app-contract.md).
-
-## Что работает
-
-- React-интерфейс: поиск, избранное, создание, публикация, шаринг, комментарии, версии, откат, копирование и архив.
-- Fastify API: свежая проверка прав на каждом запросе; роли на данные отдельно от управления кодом.
-- Data Broker: JSON Schema, PostgreSQL RLS, границы компании и приложения, версии записей, идемпотентность и квоты.
-- Статика в изолированном iframe, без cookie платформы и ключей БД; связь через ограниченный MessageChannel.
-- Проверка пакета до активации: секреты, внешние ресурсы, опасные пути, совместимость схемы. Сборочные скрипты проекта не исполняются.
-- OIDC Google Workspace / Microsoft Entra, адаптер синхронизации каталога, отзыв сессий и передача приложений при отключении сотрудника.
-- Шифрованное хранилище секретов, аудит, автоматическая архивация неиспользуемых приложений.
-- Отдельный Linux-runner для JS/TS-функций в gVisor. Без настроенного runner публикация функций отклоняется.
-
-Один экземпляр рассчитан на одну компанию. Собственная база приложения общая для пользователей, которым выданы права; построчные политики корпоративных источников и внешние коннекторы пока не реализованы. Хранилище секретов есть, но секреты не выдаются коду приложения.
-
-## Проверки и структура
-
-```sh
-npm run check           # TypeScript, тесты API/CLI/MCP/OIDC, сборка
-npm run test:e2e        # Chrome должен быть установлен; запускать после build
-npm run format:check
-```
-
-Для отдельной пустой тестовой PostgreSQL можно запустить `COSHIP_TEST_DATABASE_URL=... npx vitest run tests/platform.test.ts`. Не используйте рабочую базу: тесты создают и изменяют записи.
-
-| Каталог                                           | Назначение                                             |
-| ------------------------------------------------- | ------------------------------------------------------ |
-| `apps/web`                                        | Консоль и доверенная оболочка приложений               |
-| `apps/server`                                     | Вход, права, Data Broker, публикация и жизненный цикл  |
-| `apps/runner`, `infra/function`                   | gVisor и протокол серверных функций                    |
-| `packages/cli`, `packages/sdk`, `packages/shared` | CLI/MCP, SDK и контракт                                |
-| `scripts/sync-directory.ts`                       | Доверенный адаптер корпоративного каталога             |
-| `infra/compose.yaml`                              | Комплект API + PostgreSQL для локальной инфраструктуры |
-
-[Архитектура](docs/architecture.md) описывает целевую модель. [Реализованный объём и ограничения](docs/implementation.md) отделяют её от текущего кода. Реальный корпоративный tenant и Linux/gVisor требуют проверки в инфраструктуре заказчика; локальные тесты не заменяют такой приёмки. Размещение в выбранной стране само по себе не является подтверждением регуляторного соответствия.
+[Контракт приложения](docs/app-contract.md) · [Архитектура](docs/architecture.md) · [Размещение](docs/deployment.md)
