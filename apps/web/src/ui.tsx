@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { AlertFillIcon, CheckCircleFillIcon, XIcon } from '@primer/octicons-react';
 import type { Actor } from '../../../packages/shared/src/index';
 import { relativeTime } from './api';
 export type Me = Actor & {
@@ -128,8 +129,8 @@ export function Modal({
             <h2>{title}</h2>
             {subtitle && <p>{subtitle}</p>}
           </div>
-          <button className="text-button" onClick={onClose}>
-            Закрыть
+          <button className="icon-button" onClick={onClose} aria-label="Закрыть">
+            <XIcon size={18} />
           </button>
         </header>
         {children}
@@ -140,15 +141,15 @@ export function Modal({
 export function Toast({ notice }: { notice: Notice }) {
   return (
     <div className={`toast ${notice.kind}`} role={notice.kind === 'error' ? 'alert' : 'status'}>
-      {notice.message}
+      {notice.kind === 'error' ? <AlertFillIcon size={16} /> : <CheckCircleFillIcon size={16} />}
+      <span>{notice.message}</span>
     </div>
   );
 }
-export function PageHeading({ title, text }: { title: string; text: string }) {
+export function PageHeading({ title }: { title: string }) {
   return (
     <div className="page-heading">
       <h1>{title}</h1>
-      <p>{text}</p>
     </div>
   );
 }

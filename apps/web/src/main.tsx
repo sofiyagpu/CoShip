@@ -1,5 +1,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import {
+  AppsIcon,
+  GearIcon,
+  HistoryIcon,
+  KebabHorizontalIcon,
+  ListUnorderedIcon,
+  PeopleIcon,
+  PlusIcon,
+  QuestionIcon,
+  SearchIcon,
+  SignOutIcon,
+  StarFillIcon,
+  StarIcon,
+  TableIcon,
+} from '@primer/octicons-react';
 import type { AppView } from '../../../packages/shared/src/index';
 import { api, post, relativeTime } from './api';
 import {
@@ -193,7 +208,7 @@ function Root() {
       `${a.name} ${a.description} ${a.owner_name}`.toLowerCase().includes(search.toLowerCase()),
     );
   const sections = [
-    ['apps', 'Все', active.length],
+    ['apps', 'Все приложения', active.length],
     ['shared', 'Доступные мне', shared.length],
     ['favorites', 'Избранное', favorites.length],
     ['archived', 'Архив', archived.length],
@@ -202,7 +217,7 @@ function Root() {
   const authorization = hash.startsWith('#authorize/') ? hash.split('/')[1] : null;
   return (
     <div className="workspace">
-      <header className="global-header">
+      <aside className="sidebar">
         <button
           className="brand-home"
           onClick={() => navigate('apps')}
@@ -210,40 +225,65 @@ function Root() {
         >
           <Logo />
         </button>
-        <span className="org-name">{me.organization}</span>
-        <nav className="global-nav" aria-label="Основная навигация">
+        <button
+          className="button primary create-button"
+          onClick={() => {
+            navigate('apps');
+            setTimeout(() => document.getElementById('prompt')?.focus());
+          }}
+        >
+          <PlusIcon size={16} />
+          Создать
+        </button>
+        <nav className="side-nav" aria-label="Основная навигация">
           {(
             [
-              ['apps', 'Приложения'],
-              ['activity', 'История'],
-              ['team', 'Команда'],
-              ['settings', 'Настройки'],
+              ['apps', AppsIcon, 'Приложения'],
+              ['activity', HistoryIcon, 'История'],
+              ['team', PeopleIcon, 'Команда'],
+              ['settings', GearIcon, 'Настройки'],
             ] as const
-          ).map(([id, label]) => (
+          ).map(([id, Icon, label]) => (
             <button
               key={id}
               onClick={() => navigate(id)}
-              className={(id === 'apps' ? isApps : page === id) ? 'active' : ''}
+              className={(id === 'apps' ? isApps && !selected : page === id) ? 'active' : ''}
             >
+              <Icon size={18} />
               {label}
             </button>
           ))}
         </nav>
-        <div className="header-actions">
-          <button className="text-button" onClick={() => setHelp(true)}>
-            Помощь
-          </button>
-          <span
-            className="avatar"
-            title={`${me.name} · ${me.admin ? 'Администратор' : 'Участник'}`}
-          >
-            {me.avatar}
-          </span>
-          <button className="text-button" onClick={() => void logout()}>
-            Выйти
-          </button>
-        </div>
-      </header>
+        <span className="org-name">{me.organization}</span>
+      </aside>
+      <div className="content">
+        <header className="topbar">
+          <label className="search">
+            <SearchIcon size={16} />
+            <input
+              id="global-search"
+              placeholder="Найти приложение…"
+              aria-label="Поиск приложений"
+              value={search}
+              onChange={(e) => {
+                if (!isApps || selected) navigate('apps');
+                setSearch(e.target.value);
+              }}
+            />
+            <kbd>⌘K</kbd>
+          </label>
+          <div className="header-actions">
+            <button className="icon-button" onClick={() => setHelp(true)} aria-label="Помощь">
+              <QuestionIcon size={18} />
+            </button>
+            <span className="avatar" title={me.name}>
+              {me.avatar}
+            </span>
+            <button className="icon-button" onClick={() => void logout()} aria-label="Выйти">
+              <SignOutIcon size={18} />
+            </button>
+          </div>
+        </header>
       <main className="main">
         {selected ? (
           <AppDetail
@@ -279,20 +319,12 @@ function Root() {
                         className={page === id ? 'active' : ''}
                         onClick={() => navigate(id)}
                       >
-                        {id === 'apps' ? 'Все приложения' : label}
+                        {label}
                         <small>{count}</small>
                       </button>
                     ))}
                   </nav>
                   <div className="toolbar">
-                    <input
-                      id="global-search"
-                      className="search"
-                      placeholder="Найти приложение…"
-                      aria-label="Поиск приложений"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                    />
                     <select
                       aria-label="Фильтр приложений"
                       value={filter}
@@ -306,14 +338,16 @@ function Root() {
                       <button
                         className={layout === 'grid' ? 'selected' : ''}
                         onClick={() => setLayout('grid')}
+                        aria-label="Сетка"
                       >
-                        Сетка
+                        <TableIcon size={16} />
                       </button>
                       <button
                         className={layout === 'list' ? 'selected' : ''}
                         onClick={() => setLayout('list')}
+                        aria-label="Список"
                       >
-                        Список
+                        <ListUnorderedIcon size={16} />
                       </button>
                     </div>
                   </div>
@@ -335,35 +369,13 @@ function Root() {
                 {!displayed.length && (
                   <Empty
                     title={search ? 'Приложения не найдены' : 'Здесь пока пусто'}
-                    text={
-                      search
-                        ? 'Попробуйте другое название или сбросьте фильтр.'
-                        : 'Опишите приложение выше или выберите другой раздел.'
-                    }
+                    text={search ? 'Попробуйте другое название.' : 'Опишите приложение выше.'}
                   />
                 )}
-                <footer className="page-footer">
-                  <span>
-                    CoShip · {me.organization} ·{' '}
-                    {me.mode === 'enterprise' ? me.region : 'Локальная версия'}
-                  </span>
-                  <button
-                    className="text-button"
-                    onClick={() => {
-                      setCreateTab('agent');
-                      setCreate(true);
-                    }}
-                  >
-                    Публикация из редактора: <code>coship publish .</code>
-                  </button>
-                </footer>
               </>
             ) : page === 'activity' ? (
               <>
-                <PageHeading
-                  title="История"
-                  text="Публикации, запросы к Muse Spark и изменения доступа."
-                />
+                <PageHeading title="История" />
                 <div className="surface list-surface">
                   {activity.map((e) => (
                     <ActivityRow key={e.id} event={e} />
@@ -384,6 +396,7 @@ function Root() {
           </div>
         )}
       </main>
+      </div>
       {notice && <Toast notice={notice} />}
       {create && (
         <CreateModal
@@ -471,14 +484,6 @@ function AppCard({
         <span>
           <h3>{app.name}</h3>
           <p>{app.description || 'Без описания'}</p>
-          <small>
-            {app.status === 'archived'
-              ? 'В архиве'
-              : app.status === 'archive_pending'
-                ? 'Ожидает архива'
-                : `Версия ${app.release_count}`}{' '}
-            · {relativeTime(app.updated_at)}
-          </small>
         </span>
       </button>
       <div className="card-footer">
@@ -486,25 +491,28 @@ function AppCard({
           <span className="avatar small">{initials(app.owner_name)}</span>
           {app.owner_name}
         </span>
+        <span className="muted">
+          {app.status === 'archived' ? 'В архиве' : relativeTime(app.updated_at)}
+        </span>
         <span className="card-actions">
           <button
-            className={`chip ${app.favorite ? 'on' : ''}`}
+            className={`icon-button ${app.favorite ? 'starred' : ''}`}
             onClick={onFavorite}
             aria-pressed={app.favorite}
             aria-label={
               app.favorite ? `Убрать ${app.name} из избранного` : `В избранное: ${app.name}`
             }
           >
-            {app.favorite ? 'В избранном' : 'В избранное'}
+            {app.favorite ? <StarFillIcon size={16} /> : <StarIcon size={16} />}
           </button>
           <span className="menu-anchor">
             <button
-              className="chip"
+              className="icon-button"
               onClick={() => setMenu(!menu)}
               aria-label={`Действия: ${app.name}`}
               aria-expanded={menu}
             >
-              Ещё
+              <KebabHorizontalIcon size={16} />
             </button>
             {menu && (
               <>

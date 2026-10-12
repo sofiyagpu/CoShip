@@ -1,4 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import {
+  ArrowRightIcon,
+  ArrowUpIcon,
+  LinkIcon,
+  RepoTemplateIcon,
+  TerminalIcon,
+  TrashIcon,
+  UploadIcon,
+} from '@primer/octicons-react';
 import { api, post } from './api';
 import { WelcomeMotion } from './welcome-motion';
 import { Logo, AppMark, Modal, initials, type Me, type Notify } from './ui';
@@ -56,14 +65,9 @@ export function Login({ onLogin }: { onLogin: () => void }) {
               <span />
               CoShip / Workspace
             </div>
-            <h1 id="welcome-title">
-              Внутренние приложения.
-              <br />
-              На одной платформе.
-            </h1>
+            <h1 id="welcome-title">Внутренние приложения по описанию</h1>
             <p className="welcome-description">
-              Публикуйте проекты из любого AI-инструмента.
-              <br /> Открывайте доступ сотрудникам и отделам.
+              Опишите идею — Muse Spark соберёт приложение, а команда доработает его вместе.
             </p>
             <section
               id="welcome-access"
@@ -83,9 +87,6 @@ export function Login({ onLogin }: { onLogin: () => void }) {
                 </div>
               ) : (
                 <>
-                  <p className="welcome-account-hint">
-                    Выберите аккаунт, чтобы открыть рабочее пространство.
-                  </p>
                   <div className="welcome-accounts">
                     {users.map((u) => (
                       <button key={u.id} onClick={() => void login(u.id)} disabled={!!busy}>
@@ -94,7 +95,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
                           <strong>{u.name}</strong>
                           <small>{u.admin ? 'Администратор' : 'Участник команды'}</small>
                         </span>
-                        {busy === u.id && <span className="spinner" />}
+                        {busy === u.id ? <span className="spinner" /> : <ArrowRightIcon size={16} />}
                       </button>
                     ))}
                   </div>
@@ -111,13 +112,6 @@ export function Login({ onLogin }: { onLogin: () => void }) {
                   {error}
                 </div>
               )}
-              <div className="welcome-access-note">
-                <span>
-                  {config?.mode === 'enterprise'
-                    ? 'Доступ только для участников компании'
-                    : 'Демонстрационные аккаунты и данные'}
-                </span>
-              </div>
             </section>
             <a className="welcome-scroll" href="#welcome-how">
               Как работает CoShip
@@ -126,31 +120,25 @@ export function Login({ onLogin }: { onLogin: () => void }) {
         </section>
         <section className="welcome-how" id="welcome-how" aria-label="Возможности CoShip">
           <div>
-            <span className="welcome-step">01 / ПУБЛИКАЦИЯ</span>
-            <h2>Из вашего редактора</h2>
-            <p>
-              Опишите приложение словами — Muse Spark соберёт его. Или опубликуйте проект через CLI
-              и MCP.
-            </p>
+            <span className="welcome-step">01</span>
+            <h2>Опишите</h2>
+            <p>Muse Spark соберёт приложение. Или опубликуйте проект через CLI и MCP.</p>
             <code>coship publish .</code>
           </div>
           <div>
-            <span className="welcome-step">02 / ДОСТУП</span>
-            <h2>Для нужных людей</h2>
-            <p>Выберите сотрудников и группы. Права приложения определяют доступ к его данным.</p>
+            <span className="welcome-step">02</span>
+            <h2>Поделитесь</h2>
+            <p>Выберите сотрудников и группы — права определяют доступ к данным.</p>
           </div>
           <div>
-            <span className="welcome-step">03 / УПРАВЛЕНИЕ</span>
-            <h2>С историей изменений</h2>
-            <p>
-              Версии, комментарии и архив. При копировании приложения данные остаются в оригинале.
-            </p>
+            <span className="welcome-step">03</span>
+            <h2>Дорабатывайте вместе</h2>
+            <p>Обсуждение, версии и правки через AI — в одном месте.</p>
           </div>
         </section>
       </main>
       <footer className="welcome-footer">
         <Logo />
-        <span>Платформа внутренних приложений</span>
       </footer>
     </div>
   );
@@ -197,19 +185,21 @@ export function CreateModal({
   return (
     <Modal
       title="Новое приложение"
-      subtitle="Шаблон, готовый пакет или публикация из вашего AI-инструмента."
       onClose={() => !busy && onClose()}
       wide
     >
       <div className="modal-tabs">
         <button className={tab === 'template' ? 'active' : ''} onClick={() => setTab('template')}>
-          Из шаблона
+          <RepoTemplateIcon size={16} />
+          Шаблон
         </button>
         <button className={tab === 'upload' ? 'active' : ''} onClick={() => setTab('upload')}>
-          Загрузить проект
+          <UploadIcon size={16} />
+          Пакет
         </button>
         <button className={tab === 'agent' ? 'active' : ''} onClick={() => setTab('agent')}>
-          Из AI-инструмента
+          <TerminalIcon size={16} />
+          CLI и MCP
         </button>
       </div>
       {tab === 'template' ? (
@@ -239,11 +229,11 @@ export function CreateModal({
               placeholder="Например, план запуска"
             />
           </label>
-          <p className="hint">Сначала приложение будет доступно только вам.</p>
         </>
       ) : tab === 'upload' ? (
         <>
           <label className="upload-box">
+            <UploadIcon size={24} />
             <strong>{packet ? packet.manifest?.name : 'Выберите пакет приложения'}</strong>
             <span>JSON-пакет из команды coship pack · до 2 МБ</span>
             <input
@@ -262,15 +252,9 @@ export function CreateModal({
               }}
             />
           </label>
-          <p className="hint">
-            Пакет содержит манифест и файлы проекта. Перед публикацией CoShip проверит код, секреты
-            и политику данных.
-          </p>
         </>
       ) : (
         <div className="agent-instructions">
-          <h3>Публикация через CLI или MCP</h3>
-          <p>Подключите CLI или MCP и попросите агента опубликовать проект.</p>
           <pre>
             coship login
             <br />
@@ -299,7 +283,7 @@ export function CreateModal({
             onClick={() => void create()}
             disabled={busy || (tab === 'template' ? !name.trim() : !packet)}
           >
-            {busy ? 'Проверяем и публикуем…' : 'Создать и опубликовать'}
+            {busy ? 'Публикуем…' : 'Создать и опубликовать'}
           </button>
         )}
       </div>
@@ -363,7 +347,6 @@ export function ShareModal({
   return (
     <Modal
       title={`Поделиться «${app.name}»`}
-      subtitle="Выберите, кто может открыть приложение и его данные."
       onClose={onClose}
     >
       {canManage && (
@@ -425,12 +408,7 @@ export function ShareModal({
           </label>
         </div>
       )}
-      <div className="access-notice">
-        <p>
-          Получатели увидят <strong>все данные этого приложения</strong>. Доступ к внешним
-          корпоративным источникам отдельно не выдаётся.
-        </p>
-      </div>
+      <p className="hint">Получатели увидят все данные этого приложения.</p>
       <h4>У кого есть доступ</h4>
       <div className="grant-list">
         <div className="grant-row">
@@ -475,11 +453,11 @@ export function ShareModal({
                   <option value="none">Без данных</option>
                 </select>
                 <button
-                  className="text-button danger-text"
+                  className="icon-button danger-text"
                   onClick={() => void remove(g)}
                   aria-label={`Отозвать доступ: ${g.name}`}
                 >
-                  Убрать
+                  <TrashIcon size={16} />
                 </button>
               </>
             ) : (
@@ -490,7 +468,6 @@ export function ShareModal({
           </div>
         ))}
       </div>
-      <p className="hint">Доступ ограничен: ссылка работает только для выбранных сотрудников.</p>
       <div className="modal-actions">
         <button
           className="button secondary"
@@ -503,6 +480,7 @@ export function ShareModal({
             }
           }}
         >
+          <LinkIcon size={16} />
           Копировать ссылку
         </button>
         <button className="button primary" onClick={onClose}>
@@ -515,8 +493,7 @@ export function ShareModal({
 export function HelpModal({ onClose }: { onClose: () => void }) {
   return (
     <Modal
-      title="Любой агент. Одна команда."
-      subtitle="CoShip отвечает за публикацию, доступ и хранение данных."
+      title="Как это работает"
       onClose={onClose}
     >
       <div className="help-steps">
@@ -524,16 +501,13 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
           <span>1</span>
           <section>
             <h3>Опишите приложение</h3>
-            <p>
-              Напишите запрос на главной — Muse Spark соберёт и опубликует приложение. Или
-              подготовьте проект в своём AI-инструменте.
-            </p>
+            <p>Muse Spark соберёт и опубликует приложение.</p>
           </section>
         </div>
         <div>
           <span>2</span>
           <section>
-            <h3>Опубликуйте папку</h3>
+            <h3>Или опубликуйте папку</h3>
             <pre>
               npm run cli -- login
               <br />
@@ -545,19 +519,13 @@ export function HelpModal({ onClose }: { onClose: () => void }) {
           <span>3</span>
           <section>
             <h3>Дорабатывайте вместе</h3>
-            <p>
-              Поделитесь с коллегами. Участники обсуждают приложение рядом с ним, а те, кому
-              разрешена публикация, превращают пожелания в новую версию одним запросом.
-            </p>
+            <p>Комментарии коллег превращаются в новую версию одним нажатием.</p>
           </section>
         </div>
       </div>
-      <div className="access-notice">
-        <p>
-          MCP: <code>npm run mcp -- --root /путь/к/проекту</code>. Добавьте эту команду как
-          локальный stdio-сервер в своём агенте.
-        </p>
-      </div>
+      <p className="hint">
+        MCP: <code>npm run mcp -- --root /путь/к/проекту</code>
+      </p>
       <div className="modal-actions">
         <a className="button secondary" href="/api/docs/sdk" target="_blank" rel="noreferrer">
           Контракт SDK
@@ -658,14 +626,15 @@ export function PromptComposer({
   return (
     <section className="composer">
       <h1>Что создадим?</h1>
-      <p className="lead">
-        Опишите приложение — Muse Spark напишет его, CoShip опубликует. Дальше дорабатывайте вместе
-        с командой.
-      </p>
       <form className="composer-box" onSubmit={submit}>
         <textarea
+          id="prompt"
           aria-label="Описание приложения"
-          placeholder="Например: учёт заявок на закупку — сумма, статус, ответственный и комментарий"
+          placeholder={
+            me.generationEnabled
+              ? 'Опишите приложение: учёт заявок на закупку с суммой, статусом и ответственным…'
+              : 'Генерация выключена: задайте MUSE_API_KEY'
+          }
           maxLength={2000}
           value={prompt}
           disabled={busy || !me.generationEnabled}
@@ -676,18 +645,25 @@ export function PromptComposer({
           }}
         />
         <div className="composer-foot">
-          <span className="hint">
-            {!me.generationEnabled
-              ? 'Генерация выключена: администратор должен задать MUSE_API_KEY.'
-              : busy
-                ? 'Muse Spark собирает приложение. Обычно это занимает до минуты…'
-                : 'Ctrl / ⌘ + Enter — отправить'}
-          </span>
+          <button type="button" className="chip" onClick={() => onOther('template')}>
+            <RepoTemplateIcon size={14} />
+            Шаблон
+          </button>
+          <button type="button" className="chip" onClick={() => onOther('upload')}>
+            <UploadIcon size={14} />
+            Пакет
+          </button>
+          <button type="button" className="chip" onClick={() => onOther('agent')}>
+            <TerminalIcon size={14} />
+            CLI
+          </button>
+          {busy && <span className="hint composer-status">Muse Spark собирает приложение…</span>}
           <button
-            className="button primary"
+            className="send-button"
+            aria-label="Создать"
             disabled={busy || !me.generationEnabled || prompt.trim().length < 3}
           >
-            {busy ? 'Собираем…' : 'Создать'}
+            {busy ? <span className="spinner" /> : <ArrowUpIcon size={18} />}
           </button>
         </div>
       </form>
@@ -696,18 +672,6 @@ export function PromptComposer({
           {error}
         </div>
       )}
-      <p className="composer-alt">
-        Или начните иначе:
-        <button className="text-button" onClick={() => onOther('template')}>
-          из шаблона
-        </button>
-        <button className="text-button" onClick={() => onOther('upload')}>
-          загрузить пакет
-        </button>
-        <button className="text-button" onClick={() => onOther('agent')}>
-          CLI и MCP
-        </button>
-      </p>
     </section>
   );
 }
