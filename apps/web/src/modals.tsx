@@ -21,7 +21,7 @@ import {
   ZapIcon,
 } from '@primer/octicons-react';
 import { api, post } from './api';
-import { WelcomeMotion } from './welcome-motion';
+import { TypedHeading, WelcomeMotion } from './welcome-motion';
 import { Logo, AppMark, Modal, ThemeToggle, initials, type Me, type Notify } from './ui';
 import type { Actor, AppView } from '../../../packages/shared/src/index';
 
@@ -74,14 +74,18 @@ export function Login({ onLogin }: { onLogin: () => void }) {
               <img src="/favicon.svg" alt="" />
               CoShip
             </div>
-            <h1 id="welcome-title">Внутренние приложения по одному описанию</h1>
-            <a className="button primary large" href="#welcome-access">
+            <TypedHeading id="welcome-title" text={headline} />
+            <a
+              className="button primary large welcome-cta"
+              href="#welcome-access"
+              style={{ '--delay': `${0.9 + headline.length * 0.045}s` } as React.CSSProperties}
+            >
               Начать
             </a>
           </div>
         </section>
         <section className="welcome-preview" aria-label="Как выглядит CoShip">
-          <div className="preview-card">
+          <div className="preview-card" data-reveal>
             <div className="preview-composer">
               <span className="preview-typing">
                 Учёт заявок на закупку: сумма, статус, ответственный
@@ -92,9 +96,9 @@ export function Login({ onLogin }: { onLogin: () => void }) {
             </div>
             <div className="preview-apps">
               {[
-                ['Заявки на закупку', 'green', 'v3 · Анна Ли'],
-                ['Онбординг команды', 'blue', 'v1 · Максим Орлов'],
-                ['Банк идей', 'violet', 'v2 · София Ким'],
+                ['Заявки на закупку', 'green', 'v3 · из Claude Code'],
+                ['Онбординг команды', 'blue', 'v1 · из Cursor'],
+                ['Банк идей', 'violet', 'v2 · Muse Spark'],
               ].map(([name, color, meta]) => (
                 <div className="preview-app" key={name}>
                   <AppMark name={name} color={color} />
@@ -108,31 +112,33 @@ export function Login({ onLogin }: { onLogin: () => void }) {
           </div>
         </section>
         <section className="welcome-statement" id="welcome-how">
-          <div className="icon-arc" aria-hidden="true">
+          <div className="icon-arc" aria-hidden="true" data-reveal>
             {arcIcons.map((Icon, i) => (
-              <span key={i} style={{ '--i': i - (arcIcons.length - 1) / 2 } as React.CSSProperties}>
+              <span
+                key={i}
+                style={{ '--i': i - (arcIcons.length - 1) / 2, '--n': i } as React.CSSProperties}
+              >
                 <Icon size={22} />
               </span>
             ))}
           </div>
-          <p>
-            CoShip — платформа, где любой сотрудник собирает внутренние приложения словами, а
-            команда дорабатывает их вместе
+          <p data-reveal>
+            Без привязки к инструменту. Пишите код в Claude Code, Cursor, Codex или опишите задачу
+            Muse Spark — CoShip опубликует, выдаст доступ и сохранит данные
             <span className="caret" />
           </p>
         </section>
         <section className="welcome-features" id="welcome-features">
           {features.map(([title, text, rows]) => (
-            <div className="feature" key={title as string}>
+            <div className="feature" key={title as string} data-reveal>
               <div>
                 <h2>{title}</h2>
                 <p>{text}</p>
               </div>
               <div className="feature-visual" aria-hidden="true">
                 <div className="feature-window">
-                  {(rows as string[]).map((row, i) => (
+                  {(rows as string[]).map((row) => (
                     <div className="feature-row" key={row}>
-                      <span className="avatar small">{['СК', 'АЛ', 'МО'][i % 3]}</span>
                       {row}
                     </div>
                   ))}
@@ -146,8 +152,8 @@ export function Login({ onLogin }: { onLogin: () => void }) {
           className="welcome-access-section"
           aria-labelledby="welcome-access-title"
         >
-          <h2>Войдите в пространство</h2>
-          <div className="welcome-access">
+          <h2 data-reveal>Вход</h2>
+          <div className="welcome-access" data-reveal>
             <div className="welcome-access-heading">
               <h3 id="welcome-access-title">{config?.organization || 'Рабочее пространство'}</h3>
               <span>{config?.mode === 'enterprise' ? 'Корпоративный вход' : 'Демо'}</span>
@@ -211,21 +217,27 @@ const arcIcons = [
   ShieldCheckIcon,
   RocketIcon,
 ];
+const headline = 'Внутренние приложения из любого AI-агента';
 const features = [
   [
-    'Опишите — и готово',
-    'Muse Spark собирает интерфейс и базу данных по одной фразе. CoShip проверяет код и публикует приложение.',
-    ['Учёт заявок с суммой и статусом', 'Добавь фильтр по отделу', 'Опубликована версия 3'],
+    'Любой агент',
+    'CLI и MCP для Claude Code, Cursor, Codex и любого MCP-клиента. Сменили инструмент — приложения остались.',
+    ['$ coship publish .', 'MCP · coship_publish', 'Опубликовано · v3'],
   ],
   [
-    'Дорабатывайте вместе',
-    'Коллеги обсуждают приложение рядом с ним. Любой комментарий превращается в новую версию одним нажатием.',
-    ['Хорошо бы добавить срок', 'Воплотить через AI', 'Готово: поле «срок» добавлено'],
+    'Или просто опишите',
+    'Muse Spark собирает приложение прямо в CoShip.',
+    ['Учёт заявок: сумма и статус', 'Muse Spark собирает…', 'Опубликовано · v1'],
+  ],
+  [
+    'Вместе с командой',
+    'Комментарий коллеги становится новой версией в один клик.',
+    ['Добавьте поле «срок»', 'Воплотить через AI', 'Опубликовано · v4'],
   ],
   [
     'Доступ как у документа',
-    'Делитесь с людьми и группами. Права на данные, версии и откат — без настройки серверов.',
-    ['Продажи · просмотр', 'Анна Ли · изменение', 'Ссылка только для команды'],
+    'Люди, группы, права на данные. Версии и откат.',
+    ['Продажи · просмотр', 'Анна Ли · изменение', 'Только для команды'],
   ],
 ];
 

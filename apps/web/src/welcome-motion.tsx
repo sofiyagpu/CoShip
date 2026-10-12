@@ -80,7 +80,7 @@ export function WelcomeMotion() {
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const step = w < 700 ? 20 : 24;
+      const step = w < 700 ? 24 : 30;
       dots = [];
       for (let y = step / 2; y < h; y += step)
         for (let x = step / 2; x < w; x += step)
@@ -106,7 +106,7 @@ export function WelcomeMotion() {
       // Intro: the ring bursts out of the centre over the first 1.8 s.
       const intro = 1 - (1 - Math.min(t / 1.8, 1)) ** 3;
       const radius = intro * (Math.min(w, h) * 0.34 + Math.sin(t * 0.9) * 22);
-      const width = 60 + 26 * Math.sin(t * 0.55 + 1) + (1 - intro) * 60;
+      const width = 52 + 20 * Math.sin(t * 0.55 + 1) + (1 - intro) * 60;
       const light = dark ? 66 : 54;
       ctx.clearRect(0, 0, w, h);
       ctx.lineCap = 'round';
@@ -115,16 +115,16 @@ export function WelcomeMotion() {
           dy = d.y - center.y,
           dist = Math.hypot(dx, dy) || 1;
         const ring = Math.exp(-(((dist - radius) / width) ** 2));
-        if (ring < 0.05) continue;
+        if (ring < 0.08) continue;
         const ux = dx / dist,
           uy = dy / dist;
-        const push = ring * (12 + Math.sin(t * 2.2 + d.seed) * 4);
+        const push = ring * (10 + Math.sin(t * 2.2 + d.seed) * 5);
         const x = d.x + ux * push,
           y = d.y + uy * push,
-          half = (1.5 + ring * 6) / 2;
+          half = (1 + ring * 4) / 2;
         const hue = 212 + 22 * Math.sin(Math.atan2(dy, dx) * 2 + t * 0.5) + 10 * Math.sin(d.seed);
-        ctx.globalAlpha = Math.min(1, ring * 1.4);
-        ctx.lineWidth = 1.2 + ring * 1.4;
+        ctx.globalAlpha = Math.min(0.9, ring * 1.2);
+        ctx.lineWidth = 1.5 + ring;
         ctx.strokeStyle = `hsl(${hue} 92% ${light}%)`;
         ctx.beginPath();
         ctx.moveTo(x - ux * half, y - uy * half);
